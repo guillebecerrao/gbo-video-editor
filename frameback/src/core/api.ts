@@ -1,0 +1,76 @@
+/**
+ * HTTP contract between the Frameback server (src/server) and the web UI (web/).
+ * Normative: both sides import these types. All JSON. Errors: { error: string, code?: string } with 4xx/5xx.
+ *
+ * The server hosts several reviews at once (one per opened video). `rid` = review id (the video stem);
+ * if two videos share a stem, the server suffixes `-2`, `-3`… in its registry (the review dir is unaffected).
+ *
+ *  GET    /api/health                              -> Health
+ *  GET    /api/reviews                             -> ReviewSummary[]            (registered reviews)
+ *  POST   /api/reviews        {video: absPath}     -> ReviewSummary              (register another video; used by a 2nd `frameback open`)
+ *  GET    /api/reviews/:rid                        -> ReviewBundle
+ *  GET    /api/reviews/:rid/timeline               -> Timeline | null
+ *  GET    /api/reviews/:rid/comments               -> Comment[]                  (non-deleted)
+ *  POST   /api/reviews/:rid/comments               -> Comment
+ *            body: multipart/form-data with field `comment` (JSON NewComment) and optional file `snapshot` (image/jpeg)
+ *            OR application/json NewComment (no snapshot)
+ *  PATCH  /api/reviews/:rid/comments/:id   CommentPatch            -> Comment     (human fields only)
+ *  PUT    /api/reviews/:rid/comments/:id/snapshot  (image/jpeg body) -> Comment
+ *  POST   /api/reviews/:rid/comments/:id/status  {status: HumanStatus} -> Comment (verified|reopened|resolved_by_human|open)
+ *  DELETE /api/reviews/:rid/comments/:id                           -> Comment     (soft delete)
+ *  POST   /api/reviews/:rid/comments/:id/thread  {text}            -> Comment     (author = human)
+ *  POST   /api/reviews/:rid/submit                                 -> Review      ("Process review")
+ *  POST   /api/reviews/:rid/reopen                                 -> Review
+ *  POST   /api/reviews/:rid/video-info  Partial<VideoInfo>         -> Review      (UI reports duration/size if ffprobe missing)
+ *  GET    /api/reviews/:rid/events?since=<seq>     -> text/event-stream; each SSE message `data:` is one Event JSON,
+ *                                                     SSE `id:` = seq. Replays events with seq > since, then live.
+ *                                                     Server detects writes by other processes (CLI/MCP) by polling
+ *                                                     events.ndjson (stat ~250 ms); heartbeat comment every 15 s.
+ *  GET    /api/reviews/:rid/waveform?buckets=N     -> Waveform | 404 (needs ffmpeg; optional)
+ *  GET    /media/:rid/video                         -> the video bytes, with HTTP Range support
+ *  GET    /media/:rid/snapshots/:id.jpg             -> snapshot image
+ *  GET    /media/:rid/next                           -> 302 to the UI for review.nextVideo once delivered (registers it)
+ *  GET    /*                                        -> web UI (dist/web); UI route: /?r=<rid>
+ *
+ * Security: bind 127.0.0.1 only; never serve paths that were not registered; ids validated by regex.
+ */
+import type { Comment, Review, Timeline, VideoInfo, HumanStatus, CommentPatch, NewComment, Event } from "./schema.js";
+
+export type { Comment, Review, Timeline, VideoInfo, HumanStatus, CommentPatch, NewComment, Event };
+
+export interface Health {
+  app: "frameback";
+  version: string;
+  pid: number;
+}
+
+export interface ReviewSummary {
+  rid: string;
+  reviewDir: string; // absolute
+  videoName: string; // basename
+  state: Review["state"];
+  counts: { total: number; pending: number; prepared: number; applied: number; needs_info: number };
+}
+
+export interface ReviewBundle {
+  rid: string;
+  review: Review;
+  videoUrl: string; // "/media/<rid>/video"
+  videoName: string;
+  timeline: Timeline | null;
+  comments: Comment[];
+  lastSeq: number;
+  /** sibling versions found next to the video (same stem without _vN suffix), oldest first */
+  versions: { name: string; rid: string | null; isCurrent: boolean }[];
+  /** set when review.nextVideo exists */
+  next: { name: string; url: string } | null;
+}
+
+export interface Waveform {
+  buckets: number;
+  duration: number;
+  /** peaks 0..1, length = buckets */
+  peaks: number[];
+}
+
+export const DEFAULT_PORT = 4747;
