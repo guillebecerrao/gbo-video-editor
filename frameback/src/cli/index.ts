@@ -1,3 +1,312 @@
-// Frameback CLI entry (owned by lane L1). Placeholder so the build wiring works.
-import { VERSION } from "../core/index.js";
-console.log(`frameback ${VERSION}`);
+/** Frameback CLI (`frameback …`). Human-friendly errors, `--json` on read commands, NDJSON `watch` for agents. */
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { Command, InvalidArgumentError } from "commander";
+import { ZodError } from "zod";
+import {
+  AGENT_STATUSES,
+  AgentStatus,
+  DEFAULT_PORT,
+  StoreError,
+  VERSION,
+  addThreadMessage,
+  carryComments,
+  countComments,
+  edlToTimeline,
+  exportReview,
+  lastSeq,
+  listComments,
+  probeVideo,
+  readComment,
+  readReview,
+  renderComment,
+  resolveReviewDir,
+  resolveTimeline,
+  reviewExists,
+  setReviewState,
+  updateCommentAgent,
+  type Timeline,
+} from "../core/index.js";
+import { InvalidVideoError, packageRoot, prepareReview } from "../server/index.js";
+import { formatCommentRow } from "./format.js";
+import { openCommand } from "./open.js";
+import { parseEventType, watchReview } from "./watch.js";
+
+// ----------------------------------------------------------------- helpers ----
+
+function describeError(e: unknown): string {
+  if (e instanceof ZodError) return e.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; ");
+  if (e instanceof StoreError || e instanceof InvalidVideoError) return e.message;
+  const err = e as NodeJS.ErrnoException;
+  if (err?.code === "ENOENT") return `file not found: ${err.path ?? ""}`.trim();
+  return err instanceof Error ? err.message : String(e);
+}
+
+/** Wrap a command action: no stack traces, exit code 1 on failure. */
+function action<A extends unknown[]>(fn: (...args: A) => Promise<void>): (...args: A) => Promise<void> {
+  return async (...args) => {
+    try {
+      await fn(...args);
+    } catch (e) {
+      console.error(`frameback: ${describeError(e)}`);
+      process.exitCode = 1;
+    }
+  };
+}
+
+async function existingReviewDir(target: string): Promise<string> {
+  const dir = await resolveReviewDir(target);
+  if (!(await reviewExists(dir))) {
+    throw new Error(`no review found at ${dir} (create it with: frameback open <video>)`);
+  }
+  return dir;
+}
+
+const out = (text: string) => console.log(text);
+const printJson = (value: unknown) => out(JSON.stringify(value, null, 2));
+
+function intArg(name: string) {
+  return (value: string): number => {
+    const n = Number(value);
+    if (!Number.isInteger(n) || n < 0) throw new InvalidArgumentError(`${name} must be a non-negative integer`);
+    return n;
+  };
+}
+
+function agentStatusArg(value: string): AgentStatus {
+  const parsed = AgentStatus.safeParse(value);
+  if (!parsed.success) throw new InvalidArgumentError(`expected one of: ${AGENT_STATUSES.join(", ")}`);
+  return parsed.data;
+}
+
+// -------------------------------------------------------------------- program ----
+
+const program = new Command();
+program
+  .name("frameback")
+  .description("Local review tool for agentic video editing: anchor comments to frames, regions, ranges and timeline entities.")
+  .version(VERSION)
+  .showHelpAfterError();
+
+program
+  .command("open")
+  .argument("<video>", "video file to review")
+  .description("start the review UI for a video (or attach to a running Frameback server)")
+  .option("--port <n>", "preferred port; the next 10 are tried if it is taken", intArg("port"), DEFAULT_PORT)
+  .option("--no-open", "do not open a browser")
+  .option("--edl <path>", "edl.json to build the timeline from")
+  .option("--timeline <path>", "Frameback timeline sidecar")
+  .option("--no-carry", "do not carry comments over from the previous _vN version")
+  .option("--dev", "API only; the Vite dev server serves the UI")
+  .action(action((video: string, o) => openCommand(video, o)));
+
+program
+  .command("watch")
+  .argument("<target>", "video file or review dir (may not exist yet)")
+  .description("stream review events: NDJSON for agents (--json) or one readable line each (--text)")
+  .option("--since <seq>", "replay events after this sequence number", intArg("since"), 0)
+  .option("--tail", "start at the end of the log instead of replaying")
+  .option("--json", "one Event JSON per line (default when stdout is not a terminal)")
+  .option("--text", "one human-readable line per event (default on a terminal)")
+  .option("--exit-on <type>", "exit 0 right after printing the first event of this type, e.g. review.submitted")
+  .action(
+    action(async (target: string, o: { since: number; tail?: boolean; json?: boolean; text?: boolean; exitOn?: string }) => {
+      if (o.json && o.text) throw new Error("use either --json or --text");
+      const exitOn = o.exitOn ? parseEventType(o.exitOn) : undefined;
+      const format = o.json ? "json" : o.text ? "text" : process.stdout.isTTY ? "text" : "json";
+      const controller = new AbortController();
+      for (const sig of ["SIGINT", "SIGTERM"] as const) process.once(sig, () => controller.abort());
+      process.stdout.on("error", (e: NodeJS.ErrnoException) => {
+        if (e.code === "EPIPE") controller.abort();
+      });
+      await watchReview({
+        target,
+        since: o.since,
+        tail: o.tail,
+        format,
+        exitOn,
+        signal: controller.signal,
+        write: (line) => new Promise<void>((resolve) => process.stdout.write(`${line}\n`, () => resolve())),
+        log: (message) => console.error(`frameback: ${message}`),
+      });
+    }),
+  );
+
+program
+  .command("list")
+  .argument("<target>", "video file or review dir")
+  .description("list a review's comments")
+  .option("--agent-status <list>", "only these agent statuses (comma separated), e.g. pending,needs_info")
+  .option("--json", "print { lastSeq, review, comments }; resume with `watch --since <lastSeq>`")
+  .action(
+    action(async (target: string, o: { agentStatus?: string; json?: boolean }) => {
+      const dir = await existingReviewDir(target);
+      const wanted = o.agentStatus?.split(",").map((s) => agentStatusArg(s.trim()));
+      const [review, seq] = [await readReview(dir), await lastSeq(dir)];
+      const comments = (await listComments(dir)).filter((c) => !wanted || wanted.includes(c.agent.status));
+      if (o.json) return printJson({ lastSeq: seq, review, comments });
+      out(`${review.id} · ${review.state} · round ${review.round} · ${comments.length} comment(s) · lastSeq ${seq}`);
+      for (const c of comments) out(formatCommentRow(c, dir));
+    }),
+  );
+
+program
+  .command("show")
+  .argument("<target>", "video file or review dir")
+  .argument("<commentId>", "e.g. c-0007")
+  .description("show one comment in full")
+  .option("--json", "print the comment JSON")
+  .action(
+    action(async (target: string, id: string, o: { json?: boolean }) => {
+      const dir = await existingReviewDir(target);
+      const comment = await readComment(dir, id);
+      if (o.json) return printJson(comment);
+      out((await renderComment(dir, comment)).join("\n"));
+    }),
+  );
+
+program
+  .command("update")
+  .argument("<target>", "video file or review dir")
+  .argument("<commentId>")
+  .description("write the agent's status / plan / reply on a comment")
+  .option("--status <status>", `agent status: ${AGENT_STATUSES.join(" | ")}`, agentStatusArg)
+  .option("--plan <text>", "what the agent will do / did")
+  .option("--reply <text>", "short answer for the reviewer")
+  .option("--applied-in <stem>", "version stem where the change landed, e.g. final_v3")
+  .option("--seen-revision <n>", "human revision the agent acted on", intArg("seen-revision"))
+  .option("--json", "print the updated comment JSON")
+  .action(
+    action(
+      async (
+        target: string,
+        id: string,
+        o: { status?: AgentStatus; plan?: string; reply?: string; appliedIn?: string; seenRevision?: number; json?: boolean },
+      ) => {
+        const patch = { status: o.status, plan: o.plan, reply: o.reply, appliedIn: o.appliedIn, seenRevision: o.seenRevision };
+        if (Object.values(patch).every((v) => v === undefined)) {
+          throw new Error("nothing to update (pass --status, --plan, --reply, --applied-in or --seen-revision)");
+        }
+        const comment = await updateCommentAgent(await existingReviewDir(target), id, patch);
+        out(o.json ? JSON.stringify(comment, null, 2) : `${comment.id} agent=${comment.agent.status}`);
+      },
+    ),
+  );
+
+program
+  .command("reply")
+  .argument("<target>", "video file or review dir")
+  .argument("<commentId>")
+  .argument("<message...>", "message for the reviewer (thread)")
+  .description("append an agent message to a comment's thread")
+  .action(
+    action(async (target: string, id: string, message: string[]) => {
+      await addThreadMessage(await existingReviewDir(target), id, "agent", message.join(" "));
+      out(`${id} replied`);
+    }),
+  );
+
+program
+  .command("review")
+  .argument("<target>", "video file or review dir")
+  .description("show the review state, or set it (agent: processing | delivered | closed)")
+  .option("--state <state>", "processing | delivered | closed")
+  .option("--next-video <path>", "the next version's file (with --state delivered)")
+  .option("--json", "print the review JSON")
+  .action(
+    action(async (target: string, o: { state?: string; nextVideo?: string; json?: boolean }) => {
+      const dir = await existingReviewDir(target);
+      let review = await readReview(dir);
+      if (o.state) {
+        if (!["processing", "delivered", "closed"].includes(o.state)) {
+          throw new Error("--state must be one of: processing, delivered, closed (the reviewer controls the other states)");
+        }
+        review = await setReviewState(dir, o.state as "processing" | "delivered" | "closed", { nextVideo: o.nextVideo ? path.resolve(o.nextVideo) : undefined });
+      }
+      if (o.json) return printJson({ review, counts: await countComments(dir) });
+      out(`${review.id} state=${review.state} round=${review.round}${review.nextVideo ? ` next=${review.nextVideo}` : ""}`);
+    }),
+  );
+
+program
+  .command("carry")
+  .argument("<fromVideo>", "previous version")
+  .argument("<toVideo>", "new version (its review is created if needed)")
+  .description("copy comments from a previous version's review for verification")
+  .action(
+    action(async (from: string, to: string) => {
+      const fromDir = await existingReviewDir(from);
+      const { dir: toDir } = await prepareReview(to, { carry: false });
+      const carried = await carryComments(fromDir, toDir);
+      out(`carried ${carried.length} comment(s) into ${toDir}`);
+    }),
+  );
+
+program
+  .command("export")
+  .argument("<target>", "video file or review dir")
+  .description("print a summary of the review for the agent (Markdown by default)")
+  .option("--format <fmt>", "md | json", "md")
+  .action(
+    action(async (target: string, o: { format: string }) => {
+      if (o.format !== "md" && o.format !== "json") throw new Error("--format must be md or json");
+      process.stdout.write(await exportReview(await existingReviewDir(target), o.format));
+    }),
+  );
+
+program
+  .command("timeline")
+  .argument("<videoOrEdl>", "a video (sidecar / edl.json next to it) or an edl.json")
+  .description("print the timeline Frameback would show for a video")
+  .option("--json", "print the timeline JSON")
+  .action(
+    action(async (arg: string, o: { json?: boolean }) => {
+      const abs = path.resolve(arg);
+      const isEdl = path.extname(abs) === ".json";
+      const video = isEdl ? null : await probeVideo(abs);
+      const resolved = isEdl
+        ? await edlToTimeline(abs).then(({ timeline, warnings }) => ({ timeline, origin: "edl", sourceFile: abs, approximate: true, warnings }))
+        : await resolveTimeline(abs, { videoDuration: video?.duration });
+      if (!resolved) throw new Error(`no timeline found for ${abs} (expected <stem>.timeline.json or edl.json next to it)`);
+      if (o.json) return printJson(resolved);
+      printTimeline(resolved.timeline, resolved.origin, resolved.approximate, resolved.warnings);
+    }),
+  );
+
+function printTimeline(timeline: Timeline, origin: string, approximate: boolean | undefined, warnings: string[] | undefined) {
+  out(`timeline from ${origin}${approximate ? " (approximate)" : ""}${timeline.duration != null ? ` · ${timeline.duration.toFixed(2)}s` : ""}`);
+  for (const t of timeline.tracks) out(`  ${t.id.padEnd(12)} ${String(t.items.length).padStart(5)} ${t.kind === "markers" ? "markers" : "segments"}  ${t.label}`);
+  for (const w of warnings ?? []) out(`warning: ${w}`);
+}
+
+program
+  .command("mcp")
+  .description("run the MCP server over stdio (for agents that speak MCP)")
+  .option("--root <dir>", "default directory to search for reviews", process.cwd())
+  .action(
+    action(async (o: { root: string }) => {
+      const { startMcpServer } = await import("../mcp/server.js");
+      await startMcpServer({ root: path.resolve(o.root) });
+    }),
+  );
+
+const skill = program.command("skill").description("agent skill helpers");
+skill
+  .command("install")
+  .description("copy the frameback-review skill into a Claude Code skills directory")
+  .option("--dest <dir>", "skills directory", path.join(os.homedir(), ".claude", "skills"))
+  .action(
+    action(async (o: { dest: string }) => {
+      const source = path.join(packageRoot, "skills", "frameback-review");
+      if (!(await fs.stat(source).catch(() => null))?.isDirectory()) {
+        throw new Error(`skill files not found at ${source}`);
+      }
+      const target = path.join(path.resolve(o.dest), "frameback-review");
+      await fs.mkdir(path.dirname(target), { recursive: true });
+      await fs.cp(source, target, { recursive: true });
+      out(`installed ${target}`);
+    }),
+  );
+
+await program.parseAsync(process.argv);
