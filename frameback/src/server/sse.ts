@@ -17,6 +17,8 @@ export function streamEvents(req: Request, res: Response, reviewDir: string, sin
 
   let cursor = since;
   let signature = "";
+  let lastSize = 0;
+  let lastIno: number | null = null;
   let closed = false;
   let timer: NodeJS.Timeout | undefined;
 
@@ -24,6 +26,15 @@ export function streamEvents(req: Request, res: Response, reviewDir: string, sin
     try {
       const st = await fs.stat(p.events(reviewDir)).catch(() => null);
       const next = st ? `${st.size}:${st.mtimeMs}` : "";
+      if (st && ((lastSize > 0 && st.size < lastSize) || (lastIno !== null && st.ino !== lastIno))) {
+        // the log started over (review dir deleted and recreated): follow the new log from its beginning
+        cursor = 0;
+        res.write(": log restarted\n\n");
+      }
+      if (st) {
+        lastSize = st.size;
+        lastIno = st.ino;
+      }
       if (next !== signature) {
         signature = next;
         for (const ev of await readEvents(reviewDir, cursor)) {

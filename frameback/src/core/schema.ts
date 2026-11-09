@@ -120,7 +120,7 @@ export const NewComment = z.object({
   category: Category,
   action: Action.nullable().optional(),
   priority: Priority.default("should"),
-  body: z.string().min(1),
+  body: z.string().trim().min(1),
 });
 
 /** Human-editable fields. */
@@ -129,7 +129,7 @@ export const CommentPatch = z.object({
   category: Category.optional(),
   action: Action.nullable().optional(),
   priority: Priority.optional(),
-  body: z.string().min(1).optional(),
+  body: z.string().trim().min(1).optional(),
 });
 
 /** Agent-editable fields. */

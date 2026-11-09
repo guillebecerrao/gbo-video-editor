@@ -12,6 +12,7 @@
     "skills",
     "docs",
     "README.md",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "engines": {
@@ -36,7 +37,8 @@
     "test": "vitest run",
     "demo:make": "node examples/make-demo.mjs",
     "demo": "npm run build && npm run demo:make && node dist/cli/index.js open examples/demo/edit/final_demo_v1.mp4",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -59,5 +61,6 @@
     "typescript": "^5.7.2",
     "vite": "^6.0.5",
     "vitest": "^2.1.8"
-  }
+  },
+  "author": "Guillermo Becerra (GBO)"
 }

@@ -76,6 +76,17 @@ export function fromReview(reviewDir: string, rel: string): string {
   return path.resolve(reviewDir, rel);
 }
 
+/**
+ * Like fromReview, but the result must stay inside `reviewDir` (or, when `within` is given, inside that
+ * sub-directory of it). Review folders can come from elsewhere, so stored relative paths are untrusted.
+ * Returns null when the path escapes.
+ */
+export function insideReview(reviewDir: string, rel: string, within?: string): string | null {
+  const root = path.resolve(reviewDir, within ?? ".");
+  const abs = path.resolve(reviewDir, rel);
+  return abs.startsWith(root + path.sep) ? abs : null;
+}
+
 // ------------------------------------------------------------------- utils ----
 
 export const now = () => new Date().toISOString();
@@ -107,8 +118,11 @@ async function readJson<T>(file: string): Promise<T> {
 
 // -------------------------------------------------------------------- lock ----
 
+/** A lock older than this is stolen. Waiters give up later than this, so a stale lock never fails a writer. */
 const STALE_MS = 10_000;
-const LOCK_TIMEOUT_MS = 8_000;
+/** An owner-less lock (writer crashed between mkdir and writing the owner file) goes stale much sooner. */
+const ORPHAN_STALE_MS = 1_500;
+const LOCK_TIMEOUT_MS = 15_000;
 
 function pidAlive(pid: number): boolean {
   try {
@@ -141,7 +155,8 @@ export async function withLock<T>(reviewDir: string, fn: () => Promise<T>): Prom
         } catch {
           /* owner file not written yet */
         }
-        const old = Date.now() - st.mtimeMs > STALE_MS;
+        const age = Date.now() - st.mtimeMs;
+        const old = age > (ownerPid === null ? ORPHAN_STALE_MS : STALE_MS);
         const dead = ownerPid !== null && ownerPid !== process.pid && !pidAlive(ownerPid);
         if (old || dead) {
           await fs.rm(lock, { recursive: true, force: true });
@@ -151,7 +166,7 @@ export async function withLock<T>(reviewDir: string, fn: () => Promise<T>): Prom
         continue; // lock vanished between mkdir and stat: retry immediately
       }
       if (Date.now() - started > LOCK_TIMEOUT_MS) {
-        throw new Error(`frameback: timed out waiting for lock ${lock}`);
+        throw new Error(`timed out waiting for lock ${lock}`);
       }
       await sleep(delay + Math.random() * delay);
       delay = Math.min(delay * 2, 100);
@@ -234,8 +249,10 @@ export interface FrozenTimeline {
 export interface OpenReviewOptions {
   /** metadata known about the video (duration/fps/size); merged into review.video */
   videoInfo?: Partial<Omit<VideoInfo, "file">>;
-  /** resolved timeline to freeze into the review dir — only used when the review is created */
+  /** resolved timeline to freeze into the review dir — used when the review is created, or when `refreshTimeline` is set */
   timeline?: FrozenTimeline | null;
+  /** re-freeze `timeline` into an existing review (explicit --edl / --timeline); the timeline is advisory */
+  refreshTimeline?: boolean;
   /** stem of the version this review was carried from */
   previous?: string | null;
 }
@@ -261,8 +278,23 @@ export async function videoPathOf(reviewDir: string): Promise<string> {
 export async function openReview(videoPath: string, opts: OpenReviewOptions = {}): Promise<{ dir: string; review: Review; created: boolean }> {
   const dir = reviewDirForVideo(videoPath);
   return withLock(dir, async () => {
+    const freeze = async (tl: FrozenTimeline): Promise<NonNullable<Review["timeline"]>> => {
+      await atomicWriteJson(p.timeline(dir), tl.timeline);
+      return {
+        file: TIMELINE_FILE,
+        origin: tl.origin,
+        sourceFile: tl.sourceFile ? relToReview(dir, tl.sourceFile) : null,
+        sourceMtime: tl.sourceMtime ?? null,
+        approximate: tl.approximate ?? false,
+        warnings: tl.warnings ?? [],
+      };
+    };
     if (await exists(p.review(dir))) {
       let review = Review.parse(await readJson(p.review(dir)));
+      if (opts.refreshTimeline && opts.timeline) {
+        review = { ...review, timeline: await freeze(opts.timeline), updatedAt: now() };
+        await atomicWriteJson(p.review(dir), review);
+      }
       if (opts.videoInfo) {
         const merged = { ...review.video };
         for (const [k, v] of Object.entries(opts.videoInfo)) {
@@ -278,15 +310,7 @@ export async function openReview(videoPath: string, opts: OpenReviewOptions = {}
     const t = now();
     let timelineRef: Review["timeline"] = null;
     if (opts.timeline) {
-      await atomicWriteJson(p.timeline(dir), opts.timeline.timeline);
-      timelineRef = {
-        file: TIMELINE_FILE,
-        origin: opts.timeline.origin,
-        sourceFile: opts.timeline.sourceFile ? relToReview(dir, opts.timeline.sourceFile) : null,
-        sourceMtime: opts.timeline.sourceMtime ?? null,
-        approximate: opts.timeline.approximate ?? false,
-        warnings: opts.timeline.warnings ?? [],
-      };
+      timelineRef = await freeze(opts.timeline);
     }
     const review: Review = Review.parse({
       schemaVersion: SCHEMA_VERSION,
@@ -323,7 +347,9 @@ export async function readTimeline(reviewDir: string): Promise<Timeline | null> 
   const r = await readReview(reviewDir);
   if (!r.timeline) return null;
   try {
-    return await readJson<Timeline>(fromReview(reviewDir, r.timeline.file));
+    const file = insideReview(reviewDir, r.timeline.file);
+    if (!file) return null;
+    return await readJson<Timeline>(file);
   } catch {
     return null;
   }
@@ -342,6 +368,8 @@ export async function countComments(reviewDir: string) {
     applied: by("applied"),
     needs_info: by("needs_info"),
     declined: by("declined"),
+    /** comments the reviewer reopened (the agent status is reset to pending when that happens) */
+    reopened: live.filter((c) => c.human.status === "reopened").length,
     must: live.filter((c) => c.priority === "must").length,
   };
 }
@@ -365,7 +393,9 @@ export async function reopenReview(reviewDir: string): Promise<Review> {
   return withLock(reviewDir, async () => {
     const r = Review.parse(await readJson(p.review(reviewDir)));
     if (r.state === "reviewing") return r;
-    if (r.state === "closed") throw new StoreError("conflict", "review is closed");
+    if (r.state !== "submitted" && r.state !== "processing") {
+      throw new StoreError("conflict", `review is '${r.state}': only a submitted or processing review can be reopened`);
+    }
     const next: Review = { ...r, state: "reviewing", round: r.round + 1, updatedAt: now() };
     await atomicWriteJson(p.review(reviewDir), next);
     await appendEventLocked(reviewDir, {
@@ -379,10 +409,28 @@ export async function reopenReview(reviewDir: string): Promise<Review> {
 export async function setReviewState(
   reviewDir: string,
   state: Extract<ReviewState, "processing" | "delivered" | "closed">,
-  opts: { nextVideo?: string | null; actor?: Actor } = {},
+  opts: { nextVideo?: string | null; actor?: Actor; force?: boolean } = {},
 ): Promise<Review> {
   return withLock(reviewDir, async () => {
     const r = Review.parse(await readJson(p.review(reviewDir)));
+    if (!opts.force) {
+      // PROTOCOL §7: reviewing -> submitted (human) -> processing -> delivered; closed is terminal
+      const from = r.state;
+      const allowed: Record<typeof state, ReviewState[]> = {
+        processing: ["submitted"],
+        delivered: ["submitted", "processing"],
+        closed: ["reviewing", "submitted", "processing", "delivered"],
+      };
+      if (!allowed[state].includes(from)) {
+        throw new StoreError("conflict", `cannot set '${state}' while the review is '${from}' (allowed from: ${allowed[state].join(", ")}; pass force to override)`);
+      }
+      if (state === "delivered") {
+        const target = opts.nextVideo ?? (r.nextVideo ? fromReview(reviewDir, r.nextVideo) : null);
+        if (!target) throw new StoreError("invalid", "delivered needs the next version's file (--next-video)");
+        const st = await fs.stat(target).catch(() => null);
+        if (!st?.isFile()) throw new StoreError("invalid", `next video not found: ${target}`);
+      }
+    }
     const next: Review = {
       ...r,
       state,
@@ -511,6 +559,8 @@ export function eventSummary(c: Comment): Record<string, unknown> {
     time: c.anchor.time,
     region: c.anchor.region ?? null,
     entity: c.anchor.entity ?? null,
+    source: c.anchor.source ?? null,
+    transcript: c.anchor.transcript ?? null,
     category: c.category,
     action: c.action ?? null,
     priority: c.priority,
@@ -573,11 +623,16 @@ export async function setHumanStatus(reviewDir: string, id: string, status: Huma
     const c = await readComment(reviewDir, id);
     if (c.human.status === status) return c;
     if (status === "deleted") assertReviewing(r);
-    const next: Comment = { ...c, human: { ...c.human, status }, updatedAt: now() };
+    let agent = c.agent;
+    if (status === "reopened" && ["applied", "prepared", "declined"].includes(agent.status)) {
+      // the fix was rejected: it is pending work for the agent again (plan/reply stay as context)
+      agent = { ...agent, status: "pending", seenRevision: null, updatedAt: now() };
+    }
+    const next: Comment = { ...c, agent, human: { ...c.human, status }, updatedAt: now() };
     await atomicWriteJson(p.comment(reviewDir, id), next);
     await appendEventLocked(reviewDir, {
       type: status === "deleted" ? "comment.deleted" : "comment.human_status",
-      review: r.id, actor: "human", commentId: id, data: { status, body: c.body, time: c.anchor.time },
+      review: r.id, actor: "human", commentId: id, data: { status, body: c.body, time: c.anchor.time, agentStatus: next.agent.status },
     });
     return next;
   });
@@ -631,13 +686,19 @@ export function isStale(c: Comment): boolean {
 
 /**
  * Copy comments from a previous version's review into a new one for verification.
- * Copies non-deleted comments; keeps agent fields as they were (no rework is triggered),
+ * Copies non-deleted comments that are not verified/resolved; keeps agent fields as they were (no rework is triggered),
  * sets human.status = "open", carriedFrom = {review, id}, and emits `comment.carried` (actor system).
  * Times are kept as-is (v0.1 has no remap). Skips comments already carried.
  */
 export async function carryComments(fromReviewDir: string, toReviewDir: string): Promise<Comment[]> {
+  if (path.resolve(fromReviewDir) === path.resolve(toReviewDir)) {
+    throw new StoreError("invalid", "cannot carry a review into itself");
+  }
   const from = await readReview(fromReviewDir);
-  const src = await listComments(fromReviewDir);
+  // comments the reviewer already closed (verified / resolved) are not verification work any more
+  const src = (await listComments(fromReviewDir)).filter(
+    (c) => c.human.status !== "verified" && c.human.status !== "resolved_by_human",
+  );
   return withLock(toReviewDir, async () => {
     const to = Review.parse(await readJson(p.review(toReviewDir)));
     const already = new Set(

@@ -7,6 +7,7 @@ import { ZodError } from "zod";
 import {
   AGENT_STATUSES,
   AgentStatus,
+  HumanStatus,
   DEFAULT_PORT,
   StoreError,
   VERSION,
@@ -14,6 +15,8 @@ import {
   carryComments,
   countComments,
   edlToTimeline,
+  fromReview,
+  isStale,
   exportReview,
   lastSeq,
   listComments,
@@ -26,12 +29,13 @@ import {
   reviewExists,
   setReviewState,
   updateCommentAgent,
+  type Comment,
   type Timeline,
 } from "../core/index.js";
 import { InvalidVideoError, packageRoot, prepareReview } from "../server/index.js";
 import { formatCommentRow } from "./format.js";
 import { openCommand } from "./open.js";
-import { parseEventType, watchReview } from "./watch.js";
+import { parseActors, parseEventType, watchReview } from "./watch.js";
 
 // ----------------------------------------------------------------- helpers ----
 
@@ -74,6 +78,18 @@ function intArg(name: string) {
   };
 }
 
+/** `7`, `c-7` and `c-0007` all mean the same comment; anything else is rejected before it reaches the store. */
+function commentIdArg(value: string): string {
+  const m = /^(?:c-)?(\d{1,})$/.exec(value.trim());
+  if (!m) throw new Error(`invalid comment id '${value}' (expected e.g. c-0007 or 7)`);
+  return `c-${m[1].padStart(4, "0")}`;
+}
+
+/** Comments with a snapshot get its absolute path, so JSON consumers need not know the review dir layout. */
+function withSnapshotPath<C extends Comment>(c: C, dir: string): C & { snapshotPath: string | null } {
+  return { ...c, snapshotPath: c.snapshot ? fromReview(dir, c.snapshot) : null };
+}
+
 function agentStatusArg(value: string): AgentStatus {
   const parsed = AgentStatus.safeParse(value);
   if (!parsed.success) throw new InvalidArgumentError(`expected one of: ${AGENT_STATUSES.join(", ")}`);
@@ -105,13 +121,14 @@ program
   .command("watch")
   .argument("<target>", "video file or review dir (may not exist yet)")
   .description("stream review events: NDJSON for agents (--json) or one readable line each (--text)")
-  .option("--since <seq>", "replay events after this sequence number", intArg("since"), 0)
+  .option("--since <seq>", "replay events after this sequence number (default: replay everything; --exit-on then only counts new events)", intArg("since"))
   .option("--tail", "start at the end of the log instead of replaying")
   .option("--json", "one Event JSON per line (default when stdout is not a terminal)")
   .option("--text", "one human-readable line per event (default on a terminal)")
-  .option("--exit-on <type>", "exit 0 right after printing the first event of this type, e.g. review.submitted")
+  .option("--exit-on <type>", "exit 0 right after printing the first NEW event of this type, e.g. review.submitted (replayed history does not count)")
+  .option("--actor <list>", "only events written by these actors (comma separated: human,agent,system); use human,system to skip your own echoes")
   .action(
-    action(async (target: string, o: { since: number; tail?: boolean; json?: boolean; text?: boolean; exitOn?: string }) => {
+    action(async (target: string, o: { since?: number; tail?: boolean; json?: boolean; text?: boolean; exitOn?: string; actor?: string }) => {
       if (o.json && o.text) throw new Error("use either --json or --text");
       const exitOn = o.exitOn ? parseEventType(o.exitOn) : undefined;
       const format = o.json ? "json" : o.text ? "text" : process.stdout.isTTY ? "text" : "json";
@@ -126,6 +143,7 @@ program
         tail: o.tail,
         format,
         exitOn,
+        actors: o.actor ? parseActors(o.actor) : undefined,
         signal: controller.signal,
         write: (line) => new Promise<void>((resolve) => process.stdout.write(`${line}\n`, () => resolve())),
         log: (message) => console.error(`frameback: ${message}`),
@@ -136,17 +154,40 @@ program
 program
   .command("list")
   .argument("<target>", "video file or review dir")
-  .description("list a review's comments")
+  .description("list a review's comments (deleted ones are left out unless --all)")
   .option("--agent-status <list>", "only these agent statuses (comma separated), e.g. pending,needs_info")
-  .option("--json", "print { lastSeq, review, comments }; resume with `watch --since <lastSeq>`")
+  .option("--human-status <list>", "only these human statuses (comma separated): open,verified,reopened,resolved_by_human,deleted")
+  .option("--needs-work", "only comments the agent still has to act on: pending/acknowledged/in_progress/needs_info, stale or reopened")
+  .option("--stale", "only comments the reviewer edited after the agent acted")
+  .option("--all", "include deleted comments")
+  .option("--json", "print { lastSeq, review, comments, deleted }; resume with `watch --since <lastSeq>`")
   .action(
-    action(async (target: string, o: { agentStatus?: string; json?: boolean }) => {
+    action(async (target: string, o: { agentStatus?: string; humanStatus?: string; needsWork?: boolean; stale?: boolean; all?: boolean; json?: boolean }) => {
       const dir = await existingReviewDir(target);
       const wanted = o.agentStatus?.split(",").map((s) => agentStatusArg(s.trim()));
+      const wantedHuman = o.humanStatus?.split(",").map((s) => HumanStatus.parse(s.trim()));
       const [review, seq] = [await readReview(dir), await lastSeq(dir)];
-      const comments = (await listComments(dir)).filter((c) => !wanted || wanted.includes(c.agent.status));
-      if (o.json) return printJson({ lastSeq: seq, review, comments });
-      out(`${review.id} · ${review.state} · round ${review.round} · ${comments.length} comment(s) · lastSeq ${seq}`);
+      const everything = await listComments(dir, { includeDeleted: true });
+      const open = ["pending", "acknowledged", "in_progress", "needs_info"];
+      const keep = (c: Comment) =>
+        (!wanted || wanted.includes(c.agent.status)) &&
+        (!wantedHuman || wantedHuman.includes(c.human.status)) &&
+        (!o.stale || isStale(c)) &&
+        (!o.needsWork || (c.human.status !== "deleted" && (open.includes(c.agent.status) || isStale(c) || c.human.status === "reopened")));
+      const showDeleted = o.all || wantedHuman?.includes("deleted");
+      const live = everything.filter((c) => c.human.status !== "deleted");
+      const deleted = everything.filter((c) => c.human.status === "deleted");
+      const comments = (showDeleted ? everything : live).filter(keep);
+      if (o.json) {
+        // `deleted` is listed (compact) so a resumed agent can undo work it staged for a comment deleted since
+        return printJson({
+          lastSeq: seq,
+          review,
+          comments: comments.map((c) => withSnapshotPath(c, dir)),
+          deleted: showDeleted ? undefined : deleted.map((c) => ({ id: c.id, body: c.body, time: c.anchor.time, agentStatus: c.agent.status })),
+        });
+      }
+      out(`${review.id} · ${review.state} · round ${review.round} · ${comments.length} comment(s)${!showDeleted && deleted.length ? ` · ${deleted.length} deleted (use --all)` : ""} · lastSeq ${seq}`);
       for (const c of comments) out(formatCommentRow(c, dir));
     }),
   );
@@ -154,14 +195,14 @@ program
 program
   .command("show")
   .argument("<target>", "video file or review dir")
-  .argument("<commentId>", "e.g. c-0007")
+  .argument("<commentId>", "e.g. c-0007 or 7")
   .description("show one comment in full")
   .option("--json", "print the comment JSON")
   .action(
     action(async (target: string, id: string, o: { json?: boolean }) => {
       const dir = await existingReviewDir(target);
-      const comment = await readComment(dir, id);
-      if (o.json) return printJson(comment);
+      const comment = await readComment(dir, commentIdArg(id));
+      if (o.json) return printJson(withSnapshotPath(comment, dir));
       out((await renderComment(dir, comment)).join("\n"));
     }),
   );
@@ -188,7 +229,7 @@ program
         if (Object.values(patch).every((v) => v === undefined)) {
           throw new Error("nothing to update (pass --status, --plan, --reply, --applied-in or --seen-revision)");
         }
-        const comment = await updateCommentAgent(await existingReviewDir(target), id, patch);
+        const comment = await updateCommentAgent(await existingReviewDir(target), commentIdArg(id), patch);
         out(o.json ? JSON.stringify(comment, null, 2) : `${comment.id} agent=${comment.agent.status}`);
       },
     ),
@@ -202,8 +243,8 @@ program
   .description("append an agent message to a comment's thread")
   .action(
     action(async (target: string, id: string, message: string[]) => {
-      await addThreadMessage(await existingReviewDir(target), id, "agent", message.join(" "));
-      out(`${id} replied`);
+      await addThreadMessage(await existingReviewDir(target), commentIdArg(id), "agent", message.join(" "));
+      out(`${commentIdArg(id)} replied`);
     }),
   );
 
@@ -212,17 +253,18 @@ program
   .argument("<target>", "video file or review dir")
   .description("show the review state, or set it (agent: processing | delivered | closed)")
   .option("--state <state>", "processing | delivered | closed")
-  .option("--next-video <path>", "the next version's file (with --state delivered)")
+  .option("--next-video <path>", "the next version's file (required with --state delivered; must exist)")
+  .option("--force", "skip the state-machine checks (processing only after submit, delivered only after processing, closed is final)")
   .option("--json", "print the review JSON")
   .action(
-    action(async (target: string, o: { state?: string; nextVideo?: string; json?: boolean }) => {
+    action(async (target: string, o: { state?: string; nextVideo?: string; force?: boolean; json?: boolean }) => {
       const dir = await existingReviewDir(target);
       let review = await readReview(dir);
       if (o.state) {
         if (!["processing", "delivered", "closed"].includes(o.state)) {
           throw new Error("--state must be one of: processing, delivered, closed (the reviewer controls the other states)");
         }
-        review = await setReviewState(dir, o.state as "processing" | "delivered" | "closed", { nextVideo: o.nextVideo ? path.resolve(o.nextVideo) : undefined });
+        review = await setReviewState(dir, o.state as "processing" | "delivered" | "closed", { nextVideo: o.nextVideo ? path.resolve(o.nextVideo) : undefined, force: o.force });
       }
       if (o.json) return printJson({ review, counts: await countComments(dir) });
       out(`${review.id} state=${review.state} round=${review.round}${review.nextVideo ? ` next=${review.nextVideo}` : ""}`);

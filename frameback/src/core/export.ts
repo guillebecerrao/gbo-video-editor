@@ -36,7 +36,7 @@ const GROUPS: { id: Group; title: string }[] = [
 
 function groupOf(c: Comment): Group {
   if (c.human.status === "deleted" || c.agent.status === "declined") return "declined";
-  if (isStale(c)) return "needs_action";
+  if (isStale(c) || c.human.status === "reopened") return "needs_action";
   switch (c.agent.status) {
     case "prepared":
       return "prepared";
@@ -68,7 +68,7 @@ export async function exportReview(reviewDir: string, format: "md" | "json" = "m
     "",
     `- Video: ${video}`,
     `- State: ${review.state} (round ${review.round})`,
-    `- Comments: ${counts.total} total · ${counts.pending} pending · ${counts.prepared} prepared · ${counts.applied} applied · ${counts.needs_info} needs info · ${counts.must} must`,
+    `- Comments: ${counts.total} total · ${counts.pending} pending · ${counts.prepared} prepared · ${counts.applied} applied · ${counts.reopened} reopened · ${counts.needs_info} needs info · ${counts.must} must`,
   ];
   if (review.previous) lines.push(`- Previous version: ${review.previous}`);
   if (review.nextVideo) lines.push(`- Next version: ${fromReview(reviewDir, review.nextVideo)}`);

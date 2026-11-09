@@ -1,7 +1,7 @@
 /** The set of reviews a running server is willing to serve. Nothing outside it is ever readable over HTTP. */
 import path from "node:path";
 import { reviewDirForVideo } from "../core/index.js";
-import { assertVideoFile, prepareReview, type PrepareOptions, type PreparedReview } from "./prepare.js";
+import { assertVideoFile, prepareReview, realPathSync, type PrepareOptions, type PreparedReview } from "./prepare.js";
 
 export interface RegistryEntry {
   rid: string;
@@ -19,8 +19,9 @@ export class Registry {
   }
 
   byVideo(videoPath: string): RegistryEntry | undefined {
-    const abs = path.resolve(videoPath);
-    return [...this.entries.values()].find((e) => e.videoPath === abs);
+    // compare real paths: the same file reached through a symlink (or /var vs /private/var) is one review
+    const abs = realPathSync(videoPath);
+    return [...this.entries.values()].find((e) => realPathSync(e.videoPath) === abs);
   }
 
   list(): RegistryEntry[] {
