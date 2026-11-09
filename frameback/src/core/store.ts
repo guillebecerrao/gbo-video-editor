@@ -9,6 +9,7 @@
  */
 import { promises as fs, constants as fsc } from "node:fs";
 import path from "node:path";
+import { remapAnchor } from "./remap.js";
 import {
   SCHEMA_VERSION,
   Comment,
@@ -688,7 +689,8 @@ export function isStale(c: Comment): boolean {
  * Copy comments from a previous version's review into a new one for verification.
  * Copies non-deleted comments that are not verified/resolved; keeps agent fields as they were (no rework is triggered),
  * sets human.status = "open", carriedFrom = {review, id}, and emits `comment.carried` (actor system).
- * Times are kept as-is (v0.1 has no remap). Skips comments already carried.
+ * Anchors are remapped through source time using both reviews' frozen timelines (see remap.ts); without source
+ * info the times are kept as-is (method "identity"). Skips comments already carried.
  */
 export async function carryComments(fromReviewDir: string, toReviewDir: string): Promise<Comment[]> {
   if (path.resolve(fromReviewDir) === path.resolve(toReviewDir)) {
@@ -705,6 +707,8 @@ export async function carryComments(fromReviewDir: string, toReviewDir: string):
       (await listCommentsUnlocked(toReviewDir)).filter((c) => c.carriedFrom).map((c) => `${c.carriedFrom!.review}/${c.carriedFrom!.id}`),
     );
     const out: Comment[] = [];
+    const oldTl = await readTimeline(fromReviewDir);
+    const newTl = await readTimeline(toReviewDir);
     for (const c of src) {
       if (already.has(`${from.id}/${c.id}`)) continue;
       const id = await nextCommentIdLocked(toReviewDir);
@@ -718,19 +722,21 @@ export async function carryComments(fromReviewDir: string, toReviewDir: string):
         }
       }
       const t = now();
+      const { anchor, from: oldTime, remap } = remapAnchor(oldTl, newTl, c.anchor, to.video.fps);
       const nc: Comment = Comment.parse({
         ...c,
+        anchor,
         id,
         createdAt: t,
         updatedAt: t,
         snapshot,
         human: { status: "open", revision: c.human.revision },
-        carriedFrom: { review: from.id, id: c.id },
+        carriedFrom: { review: from.id, id: c.id, time: oldTime, remap },
       });
       await atomicWriteJson(p.comment(toReviewDir, id), nc);
       await appendEventLocked(toReviewDir, {
         type: "comment.carried", review: to.id, actor: "system", commentId: id,
-        data: { from: { review: from.id, id: c.id }, agentStatus: c.agent.status, ...eventSummary(nc) },
+        data: { from: { review: from.id, id: c.id, time: oldTime }, agentStatus: c.agent.status, remap, ...eventSummary(nc) },
       });
       out.push(nc);
     }

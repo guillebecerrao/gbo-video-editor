@@ -83,6 +83,10 @@ Other events:
 5. `frameback review <video> --state delivered --next-video <next video path>`.
 6. `frameback open <next video>`: previous comments are carried over automatically as "verify" items. Announce the
    new URL and a two-line summary of what changed. Carried comments do not trigger new work.
+   Carried comments are remapped to the new cut through source time (`carriedFrom.time` is the old time,
+   `carriedFrom.remap.status` is `exact`, `clamped` or `lost`). `lost` means that moment was removed from the new
+   version: the position is only the nearest surviving neighbour, so treat it as probably intentional and let the
+   reviewer verify or reopen.
 7. **Switch the watch to the new version**: stop the previous watch (it is tied to the old video's `events.ndjson`
    and never ends on its own) and start `frameback watch <next video> --json --actor human,system` (Monitor). Without this, the
    reviewer's `reopened` and new comments on the next version reach nobody.

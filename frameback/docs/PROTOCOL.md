@@ -83,7 +83,9 @@ lock with `seq = last seq + 1` (starting at 1).
   // ---- shared ----
   "thread": [ { "author": "agent", "at": "…", "text": "Do you prefer a cut or a zoom?" },
               { "author": "human", "at": "…", "text": "A cut." } ],
-  "carriedFrom": null       // { "review": "final_v1", "id": "c-0003" } when carried over
+  "carriedFrom": null       // when carried over: { "review": "final_v1", "id": "c-0003",
+                            //   "time": { "start": 25, "end": null },   // anchor time in the previous version (optional)
+                            //   "remap": { "method": "source", "status": "exact" } }  // optional, see §7
 }
 ```
 
@@ -100,7 +102,7 @@ Every line: `{ "seq": 12, "at": "ISO", "type": "<type>", "review": "<stem>", "co
 |------|-------|------|------|
 | `review.opened` | system | review dir created / UI opened | `{ video }` |
 | `comment.created` | human | comment sent | summary: `{ time, region, entity, category, action, priority, body, snapshot, revision }` |
-| `comment.carried` | system | copied from previous version for verification (no rework!) | `{ from, agentStatus, …summary }` |
+| `comment.carried` | system | copied from previous version for verification (no rework!) | `{ from: {review, id, time}, agentStatus, remap: {method, status}, …summary }` |
 | `comment.updated` | human | body/anchor/category/priority edited | `{ fields: [...], …summary }` |
 | `comment.deleted` | human | soft delete | — |
 | `comment.human_status` | human | verified / reopened / resolved_by_human | `{ status }` |
@@ -203,3 +205,14 @@ The UI shows them as "verify" (`carriedFrom != null`, human.status `open`) until
 - Act only on comments with `human.status` in {open, reopened}; on `comment.deleted` undo prepared staging work.
 - On `comment.updated` with `revision > agent.seenRevision`, re-plan.
 - Use `needs_info` + a thread question instead of guessing.
+
+**Carry-over remap** (`src/core/remap.ts`): a re-cut moves content in output time, so carried anchors are remapped through
+source time using the two frozen timelines. The primary track is the `cuts` track (else the first track with `range`
+items that carry `source`). Output time `t` → the old cut containing `t` → `(source, srcT)` (or `anchor.source` when
+stored) → the new cut with the same source name whose source range contains `srcT` (nearest in cut order if several)
+→ new output time. Spans map both ends; a partly surviving span is clamped to the surviving part.
+`carriedFrom.remap.method` is `source`, or `identity` (times kept as-is) when either timeline has no cuts with source info.
+`status` is `exact`; `clamped` (part of the span was cut or reordered); or `lost` (the content was removed: `anchor.time`
+then holds the nearest surviving neighbour position and `anchor.entity` is dropped). `carriedFrom.time` keeps the original
+anchor time. `anchor.frame` is recomputed from the review's fps when known, else dropped; `region` is untouched; `entity` is
+re-pointed to the new item at the mapped time (same track and type), or dropped. Remap never changes agent fields.

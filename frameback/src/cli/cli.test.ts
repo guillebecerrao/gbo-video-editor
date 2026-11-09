@@ -155,7 +155,7 @@ describe("agent commands", () => {
     const r = run("carry", video, v2);
     expect(r.stdout).toContain("carried 1 comment(s)");
     const carried = await S.listComments(S.reviewDirForVideo(v2));
-    expect(carried[0].carriedFrom).toEqual({ review: "cut_v1", id: "c-0001" });
+    expect(carried[0].carriedFrom).toMatchObject({ review: "cut_v1", id: "c-0001" });
   });
 
   it("timeline prints the resolved tracks", async () => {

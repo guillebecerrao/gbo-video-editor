@@ -273,6 +273,9 @@ a.menu-item:hover { background: var(--bg-4); }
 .transcript { margin: 0; padding: 2px 0 2px 9px; border-left: 2px solid var(--line-2); color: var(--text-2); font-style: italic; font-size: 12px; overflow-wrap: anywhere; }
 .thumb { padding: 0; border: 1px solid var(--line-2); border-radius: 6px; overflow: hidden; background: #000; align-self: flex-start; }
 .thumb img { display: block; width: 100%; max-width: 220px; height: auto; max-height: 124px; object-fit: contain; }
+.thumb { position: relative; }
+.thumb-badge { position: absolute; left: 4px; bottom: 4px; padding: 1px 5px; border-radius: 4px; font-size: 10px; background: rgba(0,0,0,.7); color: #fff; }
+.remap-lost { color: var(--warn); font-weight: 600; }
 .thumb:hover { border-color: var(--accent); }
 .lightbox { display: block; max-width: min(92vw, 1280px); max-height: 88vh; border-radius: 8px; cursor: zoom-out; }
 .agent-note { display: grid; gap: 4px; padding: 7px 9px; border-radius: 6px; background: color-mix(in srgb, var(--st) 9%, transparent); border: 1px solid color-mix(in srgb, var(--st) 30%, transparent); font-size: 12px; }
