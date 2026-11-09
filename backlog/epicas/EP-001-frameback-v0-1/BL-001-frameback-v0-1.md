@@ -20,7 +20,7 @@ trazabilidad: {objetivo: null, origen: "pedido 2026-11-09", evidencia: [], spec:
 retrabajos: 0
 prs: []
 release: null
-resultado: {senal: null, revisar: null, observado: null, experimento: null}   # experimento: EXP-NN (ciclo completo)
+resultado: {senal: "en el próximo long form revisado con Frameback: menos rondas hasta aprobar y tiempo de espera del agente ≈ 0 durante la revisión (vs. feedback por chat)", revisar: null, observado: null, experimento: null}   # experimento: EXP-NN (ciclo completo)
 historial:
   - {estado: aprobado, fecha: 2026-11-09T01:30}
 ---
