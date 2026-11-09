@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "video": "clip.mp4",
+  "duration": 10,
+  "tracks": [
+    { "id": "cuts", "label": "Cuts", "kind": "segments", "items": [{ "id": "range:0", "type": "range", "start": 0, "end": 10, "label": "all" }] }
+  ]
+}

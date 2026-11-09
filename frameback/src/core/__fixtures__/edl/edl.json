@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "sources": { "a": "../raw/a.mp4", "b": "../raw/b.mp4", "c": "../raw/c.mp4" },
+  "ranges": [
+    { "source": "a", "start": 1.0, "end": 4.0, "beat": "HOOK", "punch": [[1.5, 2.5]] },
+    { "source": "b", "start": 0.0, "end": 2.0, "beat": "QUESTION", "punch": [] },
+    { "source": "a", "start": 10.0, "end": 12.0 }
+  ],
+  "broll": [{ "source": "c", "src_start": 2.0, "duration": 1.5, "start_in_output": 3.0 }]
+}

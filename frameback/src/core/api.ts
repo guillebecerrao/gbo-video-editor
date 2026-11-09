@@ -7,10 +7,11 @@
  *
  *  GET    /api/health                              -> Health
  *  GET    /api/reviews                             -> ReviewSummary[]            (registered reviews)
- *  POST   /api/reviews        {video: absPath}     -> ReviewSummary              (register another video; used by a 2nd `frameback open`)
+ *  POST   /api/reviews        RegisterReviewRequest -> ReviewSummary             (register another video; used by a 2nd `frameback open`)
  *  GET    /api/reviews/:rid                        -> ReviewBundle
  *  GET    /api/reviews/:rid/timeline               -> Timeline | null
  *  GET    /api/reviews/:rid/comments               -> Comment[]                  (non-deleted)
+ *  GET    /api/reviews/:rid/comments/:id           -> Comment
  *  POST   /api/reviews/:rid/comments   CreateCommentRequest (JSON, limit 15 MB) -> Comment
  *  PATCH  /api/reviews/:rid/comments/:id   CommentPatch            -> Comment     (human fields only)
  *  PUT    /api/reviews/:rid/comments/:id/snapshot  (image/jpeg body) -> Comment
@@ -69,6 +70,16 @@ export interface Waveform {
   duration: number;
   /** peaks 0..1, length = buckets */
   peaks: number[];
+}
+
+export interface RegisterReviewRequest {
+  /** absolute path of the video to review */
+  video: string;
+  /** explicit EDL / timeline sidecar (same as `frameback open --edl/--timeline`) */
+  edl?: string;
+  timeline?: string;
+  /** false disables carrying comments over from the previous `_vN` version (default true) */
+  carry?: boolean;
 }
 
 export interface CreateCommentRequest {
