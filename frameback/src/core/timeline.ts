@@ -9,7 +9,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { z } from "zod";
 import { SCHEMA_VERSION, Timeline, type TimelineItem, type TimelineTrack } from "./schema.js";
-import { exists, type FrozenTimeline } from "./store.js";
+import { StoreError, exists, type FrozenTimeline } from "./store.js";
 
 export interface ResolveTimelineOptions {
   /** explicit Frameback timeline sidecar (CLI --timeline) */
@@ -32,14 +32,24 @@ const fix2 = (n: number) => n.toFixed(2);
 
 // ------------------------------------------------------------ resolution ----
 
+/** Explicit --edl / --timeline paths must exist and parse; failures carry a clear message (the caller reports them). */
+async function explicit<T>(kind: string, file: string, run: (f: string) => Promise<T>): Promise<T> {
+  if (!(await exists(file))) throw new StoreError("invalid", `${kind} file not found: ${file}`);
+  try {
+    return await run(file);
+  } catch (e) {
+    throw new StoreError("invalid", `invalid ${kind} file ${path.basename(file)}: ${e instanceof z.ZodError ? e.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ") : (e as Error).message}`);
+  }
+}
+
 export async function resolveTimeline(videoPath: string, opts: ResolveTimelineOptions = {}): Promise<FrozenTimeline | null> {
   const video = path.resolve(videoPath);
   const stem = path.basename(video, path.extname(video));
   const dir = path.dirname(video);
   const warnings: string[] = [];
 
-  if (opts.timelinePath) return fromSidecar(path.resolve(opts.timelinePath), opts, warnings);
-  if (opts.edlPath) return fromEdl(path.resolve(opts.edlPath), video, opts, warnings);
+  if (opts.timelinePath) return explicit("timeline", path.resolve(opts.timelinePath), (f) => fromSidecar(f, opts, warnings));
+  if (opts.edlPath) return explicit("edl", path.resolve(opts.edlPath), (f) => fromEdl(f, video, opts, warnings));
 
   const sidecar = path.join(dir, `${stem}.timeline.json`);
   if (await exists(sidecar)) {
@@ -154,6 +164,11 @@ export async function edlToTimeline(edlPath: string): Promise<{ timeline: Timeli
   const warnings: string[] = [];
   const transcripts = await loadTranscripts(path.dirname(file), [...new Set(edl.ranges.map((r) => r.source))], warnings);
 
+  edl.ranges.forEach((r, i) => {
+    if (r.end <= r.start) warnings.push(`range ${i} (${r.source}) has end <= start (${r.start}–${r.end}); it becomes a zero-length cut`);
+    if (r.start < 0) warnings.push(`range ${i} (${r.source}) starts at a negative source time (${r.start})`);
+  });
+
   let cursor = 0;
   const placed: Placed[] = edl.ranges.map((range, index) => {
     const outStart = cursor;
@@ -174,6 +189,12 @@ export async function edlToTimeline(edlPath: string): Promise<{ timeline: Timeli
     wordsTrack(placed, outTime),
   ];
 
+  (edl.broll ?? []).forEach((b, i) => {
+    if (b.start_in_output + b.duration > cursor + 0.05) {
+      warnings.push(`broll ${i} (${b.source}) ends at ${fix2(b.start_in_output + b.duration)}s, past the ${fix2(cursor)}s timeline`);
+    }
+  });
+
   const timeline: Timeline = {
     schemaVersion: SCHEMA_VERSION,
     duration: r3(cursor),
@@ -189,14 +210,13 @@ async function loadTranscripts(edlDir: string, sources: string[], warnings: stri
     const file = path.join(edlDir, "transcripts", `${name}.json`);
     try {
       const t = parseJson(Transcript, await fs.readFile(file, "utf8"), file);
-      out.set(
-        name,
-        t.words.flatMap((w) =>
-          w.type === "word" && w.start != null && w.end != null
+      const words = t.words.flatMap((w) =>
+          (w.type === undefined || w.type === "word") && w.start != null && w.end != null
             ? [{ text: w.text, start: w.start, end: w.end, speaker: w.speaker_id ?? null }]
             : [],
-        ),
       );
+      out.set(name, words);
+      if (!words.length) warnings.push(`transcript for "${name}" has no usable words (need text/start/end per word)`);
     } catch (e) {
       const missing = (e as NodeJS.ErrnoException).code === "ENOENT";
       warnings.push(

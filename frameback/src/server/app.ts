@@ -31,6 +31,7 @@ import {
   type CreateCommentRequest,
   type Health,
   type ReviewBundle,
+  type RegisterReviewResponse,
   type ReviewSummary,
   type Waveform,
 } from "../core/index.js";
@@ -49,8 +50,11 @@ export interface AppOptions {
 const COMMENT_ID = /^c-\d{4,}$/;
 const DATA_URL = /^data:image\/jpe?g;base64,/i;
 const JSON_LIMIT = "15mb";
+const CSP = "frame-ancestors 'none'; default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; base-uri 'none'";
+/** `--dev`: only the Vite dev server (web/vite.config.ts) may talk to the API cross-origin. */
+export const DEV_UI_PORT = 5173;
 const LOCAL_HOST = /^(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/;
-const LOCAL_ORIGIN = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:\d+)?$/;
+const DEV_ORIGIN = new RegExp(`^http://(127\\.0\\.0\\.1|localhost|\\[::1\\]):${DEV_UI_PORT}$`);
 
 class HttpError extends Error {
   constructor(public status: number, message: string) {
@@ -84,13 +88,16 @@ export function createApp(opts: AppOptions): express.Express {
     const host = req.headers.host ?? "";
     if (!LOCAL_HOST.test(host)) return next(new HttpError(403, "forbidden host"));
     const origin = req.headers.origin;
-    if (origin && origin !== `http://${host}` && !(opts.dev && LOCAL_ORIGIN.test(origin))) {
+    if (origin && origin !== `http://${host}` && !(opts.dev && DEV_ORIGIN.test(origin))) {
       return next(new HttpError(403, "forbidden origin"));
     }
     next();
   });
   app.use((_req, res, next) => {
     res.setHeader("X-Content-Type-Options", "nosniff");
+    // the UI is never meant to be framed: a hostile page could clickjack "Process review" or deletes
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Content-Security-Policy", CSP);
     next();
   });
 
@@ -112,7 +119,7 @@ export function createApp(opts: AppOptions): express.Express {
       reviewDir: e.reviewDir,
       videoName: path.basename(e.videoPath),
       state: review.state,
-      counts: { total: counts.total, pending: counts.pending, prepared: counts.prepared, applied: counts.applied, needs_info: counts.needs_info },
+      counts: { total: counts.total, pending: counts.pending, prepared: counts.prepared, applied: counts.applied, needs_info: counts.needs_info, reopened: counts.reopened },
     };
   };
 
@@ -131,8 +138,9 @@ export function createApp(opts: AppOptions): express.Express {
 
   app.post("/api/reviews", json, route(async (req, res) => {
     const body = RegisterBody.parse(req.body);
-    const { entry } = await registry.register(body.video, { edlPath: body.edl, timelinePath: body.timeline, carry: body.carry });
-    res.json(await summary(entry));
+    const { entry, prepared } = await registry.register(body.video, { edlPath: body.edl, timelinePath: body.timeline, carry: body.carry });
+    const response: RegisterReviewResponse = { ...(await summary(entry)), carried: prepared.carried, warnings: prepared.warnings };
+    res.json(response);
   }));
 
   app.get("/api/reviews/:rid", route(async (req, res) => {
@@ -217,18 +225,22 @@ export function createApp(opts: AppOptions): express.Express {
     const body = req.body as Partial<CreateCommentRequest>;
     const comment = NewComment.parse(body?.comment);
     const snapshot = decodeSnapshot(body?.snapshotDataUrl);
+    assertAnchorFits(comment.anchor, (await readReview(entry.reviewDir)).video.duration);
     res.json(await createComment(entry.reviewDir, comment, { snapshot }));
   }));
 
   app.patch("/api/reviews/:rid/comments/:id", json, route(async (req, res) => {
-    res.json(await updateCommentHuman(entryOf(req).reviewDir, commentId(req), CommentPatch.parse(req.body)));
+    const entry = entryOf(req);
+    const patch = CommentPatch.parse(req.body);
+    if (patch.anchor) assertAnchorFits(patch.anchor, (await readReview(entry.reviewDir)).video.duration);
+    res.json(await updateCommentHuman(entry.reviewDir, commentId(req), patch));
   }));
 
   app.put("/api/reviews/:rid/comments/:id/snapshot", express.raw({ type: "image/jpeg", limit: JSON_LIMIT }), route(async (req, res) => {
     const entry = entryOf(req);
     const id = commentId(req);
     if (!Buffer.isBuffer(req.body) || req.body.length === 0) throw new HttpError(400, "expected an image/jpeg body");
-    res.json(await setSnapshot(entry.reviewDir, id, req.body));
+    res.json(await setSnapshot(entry.reviewDir, id, assertJpeg(req.body)));
   }));
 
   app.post("/api/reviews/:rid/comments/:id/status", json, route(async (req, res) => {
@@ -263,7 +275,7 @@ export function createApp(opts: AppOptions): express.Express {
     const entry = entryOf(req);
     const review = await readReview(entry.reviewDir);
     if (!review.nextVideo) throw new HttpError(404, "no next version yet");
-    const { entry: next } = await registry.register(fromReview(entry.reviewDir, review.nextVideo));
+    const { entry: next } = await registry.register(fromReview(entry.reviewDir, review.nextVideo), { carryFrom: entry.reviewDir });
     res.redirect(302, `/?r=${encodeURIComponent(next.rid)}`);
   }));
 
@@ -292,6 +304,8 @@ export function createApp(opts: AppOptions): express.Express {
     const { status, body } = toHttpError(err);
     if (status >= 500) process.stderr.write(`frameback: ${err instanceof Error ? err.stack : String(err)}\n`);
     if (res.headersSent) return res.end();
+    const headers = (err as { headers?: Record<string, string> })?.headers;
+    if (status < 500 && headers) for (const [k, v] of Object.entries(headers)) res.setHeader(k, v);
     res.status(status).json(body);
   });
 
@@ -311,8 +325,11 @@ function toHttpError(err: unknown): { status: number; body: { error: string; cod
     const issue = err.issues[0];
     return { status: 400, body: { error: `${issue.path.join(".") || "body"}: ${issue.message}`, code: "invalid" } };
   }
+  const fsError = err as NodeJS.ErrnoException;
+  if (fsError?.code === "ENOENT" && fsError.path) return { status: 400, body: { error: `file not found: ${fsError.path}`, code: "invalid" } };
   const bodyParserError = err as { status?: number; type?: string; message?: string };
-  if (bodyParserError?.type && bodyParserError.status && bodyParserError.status < 500) {
+  // errors from express/send carry a 4xx status (416 range not satisfiable, 412, 404...)
+  if (bodyParserError?.status && bodyParserError.status >= 400 && bodyParserError.status < 500) {
     return { status: bodyParserError.status, body: { error: bodyParserError.message ?? "bad request" } };
   }
   return { status: 500, body: { error: "internal error" } };
@@ -323,7 +340,29 @@ function decodeSnapshot(dataUrl: string | null | undefined): Buffer | null {
   if (typeof dataUrl !== "string" || !DATA_URL.test(dataUrl)) {
     throw new HttpError(400, "snapshotDataUrl must be a data:image/jpeg;base64 URL");
   }
-  return Buffer.from(dataUrl.slice(dataUrl.indexOf(",") + 1), "base64");
+  const b64 = dataUrl.slice(dataUrl.indexOf(",") + 1);
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(b64) || b64.length % 4 === 1) throw new HttpError(400, "snapshotDataUrl is not valid base64");
+  return assertJpeg(Buffer.from(b64, "base64"));
+}
+
+function assertJpeg(buf: Buffer): Buffer {
+  if (buf.length < 4 || buf[0] !== 0xff || buf[1] !== 0xd8 || buf[2] !== 0xff) throw new HttpError(400, "snapshot is not a JPEG image");
+  return buf;
+}
+
+/** Reject anchors that cannot exist in the video: times past the end, regions outside the frame. */
+function assertAnchorFits(anchor: NewComment["anchor"], duration: number | null | undefined): void {
+  const t = anchor.time;
+  if (duration != null && duration > 0) {
+    const limit = duration + 0.5;
+    if (t.start > limit || (t.end != null && t.end > limit)) {
+      throw new HttpError(400, `anchor time ${t.end != null ? Math.max(t.start, t.end) : t.start}s is past the end of the video (${duration.toFixed(2)}s)`);
+    }
+  }
+  const r = anchor.region;
+  if (r && r.shape === "rect" && (r.x + r.w > 1.0001 || r.y + r.h > 1.0001)) {
+    throw new HttpError(400, "region extends outside the frame (x+w and y+h must be <= 1)");
+  }
 }
 
 async function sendRegisteredFile(res: Response, file: string): Promise<void> {

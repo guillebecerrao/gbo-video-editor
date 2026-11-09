@@ -10,11 +10,12 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { AgentStatus, EventType, type Comment, type Event } from "../core/schema.js";
+import { Actor, AgentStatus, EventType, type Comment, type Event } from "../core/schema.js";
 import {
   addThreadMessage,
   countComments,
   fromReview,
+  insideReview,
   isStale,
   lastSeq,
   listComments,
@@ -43,7 +44,9 @@ const INSTRUCTIONS = [
   "2. Call frameback_wait_for_events with the returned lastSeq; each comment.created / comment.updated event carries the comment summary.",
   "3. Call frameback_get_comment to see the snapshot image, then mark it acknowledged / in_progress / prepared / needs_info via frameback_update_comment (ask questions with frameback_reply).",
   "4. When review.submitted arrives, set the state to processing, finish the remaining comments, render once, mark them applied.",
-  "5. Finish with frameback_set_review_state delivered (nextVideo = the new file). Never edit human fields; keep replies short.",
+  "5. Finish with frameback_set_review_state delivered (nextVideo = the new, existing file). Never edit human fields; keep replies short.",
+  "Pass actors:[\"human\",\"system\"] to frameback_wait_for_events to skip the echoes of your own updates.",
+  "Starting a review (`frameback open <video>`) and carrying comments to a new version need the CLI; MCP only works on existing reviews.",
 ].join("\n");
 
 const MAX_WAIT_SEC = 300;
@@ -193,7 +196,11 @@ export function createMcpServer(opts: McpServerOptions = {}): McpServer {
       const content: CallToolResult["content"] = [{ type: "text", text: JSON.stringify({ ...comment, stale: isStale(comment) }, null, 2) }];
       if (comment.snapshot) {
         try {
-          const jpeg = await fs.readFile(fromReview(dir, comment.snapshot));
+          // review folders can come from elsewhere: never read outside <review>/snapshots, and only hand over real JPEGs
+          const file = insideReview(dir, comment.snapshot, "snapshots");
+          if (!file) throw new Error("snapshot path escapes the review folder");
+          const jpeg = await fs.readFile(file);
+          if (jpeg.length < 3 || jpeg[0] !== 0xff || jpeg[1] !== 0xd8 || jpeg[2] !== 0xff) throw new Error("not a JPEG");
           content.push({ type: "image", data: jpeg.toString("base64"), mimeType: "image/jpeg" });
         } catch {
           content.push({ type: "text", text: `(snapshot ${comment.snapshot} is missing on disk)` });
@@ -213,6 +220,7 @@ export function createMcpServer(opts: McpServerOptions = {}): McpServer {
       plan: z.string().nullable().optional().describe("What you intend to do / did, one or two sentences"),
       reply: z.string().nullable().optional().describe("Short note shown to the human on the card"),
       appliedIn: z.string().nullable().optional().describe("Stem of the video version where the change landed"),
+      seenRevision: z.number().int().min(0).nullable().optional().describe("Human revision you acted on (defaults to the current one)"),
     },
     async ({ review, id, ...patch }) => {
       const dir = await reviewDirOf(review);
@@ -237,36 +245,51 @@ export function createMcpServer(opts: McpServerOptions = {}): McpServer {
     {
       review: reviewArg,
       state: z.enum(["processing", "delivered", "closed"]),
-      nextVideo: z.string().optional().describe("Path of the new video version (use with delivered)"),
+      nextVideo: z.string().optional().describe("Path of the new video version; required with delivered and it must exist"),
+      force: z.boolean().optional().describe("Skip the state-machine checks (processing only after submit, delivered only after processing, closed is final)"),
     },
-    async ({ review, state, nextVideo }) => {
+    async ({ review, state, nextVideo, force }) => {
       const dir = await reviewDirOf(review);
-      const r = await setReviewState(dir, state, { nextVideo: nextVideo ? path.resolve(root, nextVideo) : undefined });
+      const r = await setReviewState(dir, state, { nextVideo: nextVideo ? path.resolve(root, nextVideo) : undefined, force });
       return text({ id: r.id, state: r.state, round: r.round, nextVideo: r.nextVideo ?? null });
     },
   );
 
   tool(
     "frameback_wait_for_events",
-    `Long-poll for new review events (seq > sinceSeq). Waits for the review to exist. Returns { events, lastSeq, timedOut }; pass lastSeq back as sinceSeq.`,
+    `Long-poll for new review events (seq > sinceSeq). Waits for the review to exist. Returns { events, lastSeq, timedOut, reviewExists, reviewDir }; pass lastSeq back as sinceSeq. A sinceSeq beyond the log end is clamped to the real lastSeq (reset: true).`,
     {
       review: reviewArg,
       sinceSeq: z.number().int().min(0).default(0),
       timeoutSec: z.number().min(1).max(MAX_WAIT_SEC).default(60),
       types: z.array(EventType).optional().describe("Only return these event types"),
+      actors: z.array(Actor).optional().describe("Only return events written by these actors, e.g. [\"human\",\"system\"] to skip your own echoes"),
     },
-    async ({ review, sinceSeq, timeoutSec, types }, signal) => {
+    async ({ review, sinceSeq, timeoutSec, types, actors }, signal) => {
       const dir = await resolveReviewDir(path.resolve(root, review));
       const deadline = Date.now() + timeoutSec * 1000;
       let cursor = sinceSeq;
+      let reset = false;
+      const end = await lastSeq(dir);
+      if (cursor > end) {
+        // a stale or foreign cursor would silently skip every event up to it
+        cursor = end;
+        reset = true;
+      }
       for (;;) {
         const fresh: Event[] = await readEvents(dir, cursor);
         if (fresh.length) {
           cursor = fresh[fresh.length - 1].seq;
-          const events = types ? fresh.filter((e) => types.includes(e.type)) : fresh;
-          if (events.length) return text({ events, lastSeq: cursor, timedOut: false });
+          const events = fresh.filter((e) => (!types || types.includes(e.type)) && (!actors || actors.includes(e.actor)));
+          if (events.length) return text({ events, lastSeq: cursor, timedOut: false, reviewExists: true, reviewDir: dir, ...(reset ? { reset } : {}) });
         }
-        if (Date.now() >= deadline || signal.aborted) return text({ events: [], lastSeq: cursor, timedOut: true });
+        if (Date.now() >= deadline || signal.aborted) {
+          const exists = await reviewExists(dir);
+          return text({
+            events: [], lastSeq: cursor, timedOut: true, reviewExists: exists, reviewDir: dir, ...(reset ? { reset } : {}),
+            ...(exists ? {} : { warning: `no review found at ${dir}; check the path (it may not exist yet)` }),
+          });
+        }
         await sleep(POLL_MS, signal);
       }
     },

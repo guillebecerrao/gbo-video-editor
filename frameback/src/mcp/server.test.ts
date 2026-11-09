@@ -100,7 +100,25 @@ describe("frameback MCP server", () => {
     expect(stored.thread).toMatchObject([{ author: "agent", text: "Which side?" }]);
   });
 
+  it("never reads a snapshot outside the review folder, and clamps a foreign sinceSeq", async () => {
+    const c = await S.createComment(dir, nc("a"));
+    const secret = path.join(tmp, "secret.txt");
+    await fs.writeFile(secret, "SECRETDATA");
+    const file = S.p.comment(dir, c.id);
+    await fs.writeFile(file, JSON.stringify({ ...c, snapshot: secret }));
+    const got = (await call("frameback_get_comment", { review: dir, id: c.id })).content;
+    expect(got.some((x) => x.type === "image")).toBe(false);
+    expect(JSON.stringify(got)).not.toContain(Buffer.from("SECRETDATA").toString("base64"));
+
+    const waited = (await call("frameback_wait_for_events", { review: dir, sinceSeq: 9999, timeoutSec: 1 })).json();
+    expect(waited).toMatchObject({ timedOut: true, reset: true, lastSeq: await S.lastSeq(dir) });
+    const typo = (await call("frameback_wait_for_events", { review: path.join(tmp, "typo.mp4"), timeoutSec: 1 })).json();
+    expect(typo).toMatchObject({ reviewExists: false });
+  });
+
   it("sets the review state and the next video", async () => {
+    await S.submitReview(dir);
+    await fs.writeFile(path.join(path.dirname(video), "final_v2.mp4"), "x");
     const out = (await call("frameback_set_review_state", { review: dir, state: "delivered", nextVideo: "final_v2.mp4" })).json();
     expect(out).toMatchObject({ state: "delivered", nextVideo: "../../final_v2.mp4" });
   });
@@ -124,7 +142,7 @@ describe("frameback MCP server", () => {
     expect(out.lastSeq).toBeGreaterThan(2);
 
     const idle = (await call("frameback_wait_for_events", { review: dir, sinceSeq: out.lastSeq, timeoutSec: 1 })).json();
-    expect(idle).toEqual({ events: [], lastSeq: out.lastSeq, timedOut: true });
+    expect(idle).toMatchObject({ events: [], lastSeq: out.lastSeq, timedOut: true, reviewExists: true });
   });
 
   it("wait_for_events waits for a review that does not exist yet", async () => {

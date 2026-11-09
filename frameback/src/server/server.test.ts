@@ -102,9 +102,9 @@ describe("comments lifecycle", () => {
     const patched = (await (await api(`/api/reviews/talk_v1/comments/${id}`, { method: "PATCH", json: { body: "fix that", priority: "must" } })).json()) as Comment;
     expect(patched).toMatchObject({ body: "fix that", priority: "must", human: { revision: 2 } });
 
-    const png = await api(`/api/reviews/talk_v1/comments/${id}/snapshot`, { method: "PUT", headers: { "Content-Type": "image/jpeg" }, body: Buffer.from([0xff, 0xd8, 9]) });
+    const png = await api(`/api/reviews/talk_v1/comments/${id}/snapshot`, { method: "PUT", headers: { "Content-Type": "image/jpeg" }, body: Buffer.from([0xff, 0xd8, 0xff, 9]) });
     expect(png.status).toBe(200);
-    expect(Buffer.from(await (await api(`/media/talk_v1/snapshots/${id}.jpg`)).arrayBuffer())).toEqual(Buffer.from([0xff, 0xd8, 9]));
+    expect(Buffer.from(await (await api(`/media/talk_v1/snapshots/${id}.jpg`)).arrayBuffer())).toEqual(Buffer.from([0xff, 0xd8, 0xff, 9]));
 
     const threaded = (await (await api(`/api/reviews/talk_v1/comments/${id}/thread`, { method: "POST", json: { text: "a cut please" } })).json()) as Comment;
     expect(threaded.thread).toMatchObject([{ author: "human", text: "a cut please" }]);
@@ -208,9 +208,11 @@ describe("events (SSE)", () => {
 
 describe("versions and carry-over", () => {
   it("carries comments into _v2 on registration and lists versions", async () => {
-    await S.setReviewState(path.join(tmp, "review", "talk_v1"), "delivered", { nextVideo: path.join(tmp, "talk_v2.mp4") });
     const v2 = path.join(tmp, "talk_v2.mp4");
     await fs.writeFile(v2, Buffer.alloc(10, 1));
+    await S.setHumanStatus(path.join(tmp, "review", "talk_v1"), "c-0001", "open"); // verified comments are not carried
+    await S.submitReview(path.join(tmp, "review", "talk_v1"));
+    await S.setReviewState(path.join(tmp, "review", "talk_v1"), "delivered", { nextVideo: v2 });
 
     const before = await getJson<ReviewBundle>("/api/reviews/talk_v1");
     expect(before.next).toEqual({ name: "talk_v2.mp4", url: "/media/talk_v1/next" });

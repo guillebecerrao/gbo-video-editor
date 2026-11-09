@@ -133,11 +133,13 @@ describe("agent commands", () => {
     expect(run("update", video, "c-0001", "--status", "bogus").status).toBe(1);
     expect(run("update", video, "c-0001").stderr).toMatch(/nothing to update/);
     expect(run("reply", video, "c-0001", "which", "one?").status).toBe(0);
+    expect(run("review", video, "--state", "processing").status).toBe(1); // not submitted yet
+    await S.submitReview(dir);
     expect(run("review", video, "--state", "processing").stdout).toContain("state=processing");
     expect(run("review", video, "--state", "reviewing").status).toBe(1);
 
     const list = JSON.parse(run("list", dir, "--json").stdout);
-    expect(list.lastSeq).toBe(5);
+    expect(list.lastSeq).toBe(6);
     expect(list.comments[0]).toMatchObject({ agent: { status: "in_progress", plan: "p" }, thread: [{ author: "agent", text: "which one?" }] });
     expect(run("list", video, "--agent-status", "prepared").stdout).not.toContain("c-0001");
     expect(JSON.parse(run("show", video, "c-0001", "--json").stdout).id).toBe("c-0001");

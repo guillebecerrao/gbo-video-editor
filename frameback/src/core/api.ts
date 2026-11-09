@@ -7,7 +7,7 @@
  *
  *  GET    /api/health                              -> Health
  *  GET    /api/reviews                             -> ReviewSummary[]            (registered reviews)
- *  POST   /api/reviews        RegisterReviewRequest -> ReviewSummary             (register another video; used by a 2nd `frameback open`)
+ *  POST   /api/reviews        RegisterReviewRequest -> RegisterReviewResponse            (register another video; used by a 2nd `frameback open`)
  *  GET    /api/reviews/:rid                        -> ReviewBundle
  *  GET    /api/reviews/:rid/timeline               -> Timeline | null
  *  GET    /api/reviews/:rid/comments               -> Comment[]                  (non-deleted)
@@ -48,7 +48,15 @@ export interface ReviewSummary {
   reviewDir: string; // absolute
   videoName: string; // basename
   state: Review["state"];
-  counts: { total: number; pending: number; prepared: number; applied: number; needs_info: number };
+  counts: { total: number; pending: number; prepared: number; applied: number; needs_info: number; reopened?: number };
+}
+
+/** Response of POST /api/reviews: the summary plus what `frameback open` should tell the user. */
+export interface RegisterReviewResponse extends ReviewSummary {
+  /** comments carried over from the previous version (0 when the review already existed) */
+  carried?: number;
+  /** timeline warnings and other notices */
+  warnings?: string[];
 }
 
 export interface ReviewBundle {
