@@ -1,7 +1,7 @@
 # Frameback quick reference
 
 `<target>` is a video path, a review dir (`<video dir>/review/<stem>`) or a `review.json` path.
-If `frameback` is not on PATH, use the clone: `npm install && npm run build && npm link` in the Frameback repo, or
+If `frameback` is not on PATH, install it with `npm install -g frameback` (or run it through `npx frameback`), or
 `node /abs/path/frameback/dist/cli/index.js …`. Read commands accept `--json`.
 
 ## CLI cheat sheet

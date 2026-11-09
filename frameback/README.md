@@ -1,5 +1,7 @@
 # Frameback
 
+[![npm](https://img.shields.io/npm/v/frameback)](https://www.npmjs.com/package/frameback) [![CI](https://github.com/guillebecerrao/frameback/actions/workflows/ci.yml/badge.svg)](https://github.com/guillebecerrao/frameback/actions/workflows/ci.yml) [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 **Frame-accurate feedback for AI video editing.**
 
 Open the video your AI agent delivered, click on the exact frame, drag a region, select a range or a timeline item,
@@ -46,25 +48,29 @@ conveniences over the same files. See [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 
 Requires Node 20+. ffmpeg is optional (waveform and video probing); the demo generator needs it.
 
-Frameback is not published on npm yet, so install it from a clone. This puts a `frameback` command on your PATH,
-which is what the agent skill calls from inside your video project:
+Install the `frameback` command globally (it is what the agent skill calls from inside your video project):
 
 ```sh
-git clone https://github.com/guillebecerrao/frameback.git
-cd frameback
-npm install && npm run build && npm link     # `frameback --version` should now work anywhere
+npm install -g frameback      # `frameback --version` should now work anywhere
 ```
 
 Then, from your video's folder:
 
 ```sh
-frameback open video.mp4
+frameback open video.mp4      # or, without installing: npx frameback open video.mp4
 ```
 
 The UI opens in your browser. Press `C` to comment at the playhead. Nothing else to configure.
-(Once the package is on npm, `npm i -g frameback` or `npx frameback …` will work too.)
 
-Try it with synthetic demo footage, from the clone (needs ffmpeg and ffprobe):
+To hack on Frameback itself, install from a clone instead:
+
+```sh
+git clone https://github.com/guillebecerrao/frameback.git
+cd frameback
+npm install && npm link
+```
+
+Try it with synthetic demo footage, from a clone (needs ffmpeg and ffprobe):
 
 ```sh
 npm run demo        # builds if needed, generates the demo once, opens the review UI on port 4747

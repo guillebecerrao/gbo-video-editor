@@ -22,7 +22,7 @@ fi
 ```
 
 Use `$FB` wherever this skill says `frameback`. If neither works, do not install anything silently: tell the user
-Frameback is available and why it is off (not on PATH; from a clone: `npm install && npm run build && npm link`),
+Frameback is available and why it is off (not on PATH; install with `npm install -g frameback`),
 and continue the normal editing workflow with its usual checkpoints (ask for feedback in chat, deliver the next
 version the usual way).
 

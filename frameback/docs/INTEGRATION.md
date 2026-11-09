@@ -137,7 +137,7 @@ else
 fi
 ```
 
-Until the package is on npm, install from a clone with `npm install && npm run build && npm link`.
+Install with `npm install -g frameback` (or `npx frameback …`); to work on Frameback itself, `npm install && npm link` in a clone.
 
 Guidelines: never install it silently; never block delivery on it; keep emitting your usual outputs. The sidecar is
 inert if Frameback is absent.
