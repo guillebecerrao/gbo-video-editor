@@ -5,7 +5,7 @@ import {
   AGENT_LABEL, CATEGORY_ICON, FILTERS, PRIORITY_LABEL, canEdit, filterCounts, hasUnansweredQuestion, isAnsweredWaiting, isCarriedOpen, isStale, matchesFilter,
   needsVerification, sortByTime, partitionResolved, firstLine, isResolved, type FilterId,
 } from "../lib/comments";
-import { formatSpan } from "../lib/time";
+import { formatSpan, formatTimecode } from "../lib/time";
 import { CheckIcon, EditIcon, RegionIcon, TrashIcon } from "./icons";
 import { Modal } from "./Modal";
 
@@ -201,6 +201,7 @@ function CommentCard({ comment: c, rid, fps, state, focused, onFocus, onPatch, o
         <>
           <button className="thumb" onClick={() => setZoom(true)} aria-label={`Open snapshot of ${c.id}`}>
             <img src={snapshotUrl(rid, c.id, c.updatedAt)} alt="" loading="lazy" />
+            {c.carriedFrom && <span className="thumb-badge">{c.carriedFrom.review.replace(/^.*_(v\d+)$/, "$1")} frame</span>}
           </button>
           {zoom && (
             <Modal title={`Snapshot ${c.id}`} onClose={() => setZoom(false)} wide bare>
@@ -227,6 +228,12 @@ function CommentCard({ comment: c, rid, fps, state, focused, onFocus, onPatch, o
       )}
       {carriedOpen && (
         <p className="muted small carried-line">Still open from the previous version (was #{c.carriedFrom?.id.replace(/^c-/, "")}).</p>
+      )}
+      {c.carriedFrom?.remap?.status === "lost" && (
+        <p className="small carried-line remap-lost">This moment was cut in this version.</p>
+      )}
+      {c.carriedFrom?.time && c.carriedFrom.remap?.status !== "lost" && Math.abs(c.carriedFrom.time.start - c.anchor.time.start) > 0.02 && (
+        <p className="muted small carried-line">Moved from {formatTimecode(c.carriedFrom.time.start, fps)} in {c.carriedFrom.review.replace(/^.*_(v\d+)$/, "$1")}{c.carriedFrom.remap?.status === "clamped" ? " (part of it was cut)" : ""}.</p>
       )}
       {verify && c.carriedFrom && <p className="muted small carried-line">Was #{c.carriedFrom.id.replace(/^c-/, "")} in the previous version.</p>}
       {c.human.status === "verified" && <p className="muted small verified-line"><CheckIcon /> Verified</p>}

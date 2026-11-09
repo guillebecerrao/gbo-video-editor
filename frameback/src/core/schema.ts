@@ -93,6 +93,20 @@ export const AgentFields = z.object({
   updatedAt: Iso.nullable().optional(),
 });
 
+/** Where a carried comment came from; `time`/`remap` record how its anchor was moved to this version's timeline. */
+export const CarriedFrom = z.object({
+  review: z.string(),
+  id: z.string(),
+  /** the anchor time in the previous version (before remapping) */
+  time: TimeSpan.optional(),
+  remap: z
+    .object({
+      method: z.enum(["source", "identity"]),
+      status: z.enum(["exact", "clamped", "lost"]),
+    })
+    .optional(),
+});
+
 export const Comment = z.object({
   schemaVersion: z.literal(SCHEMA_VERSION),
   id: z.string().regex(/^c-\d{4,}$/),
@@ -111,7 +125,7 @@ export const Comment = z.object({
   }),
   agent: AgentFields,
   thread: z.array(ThreadMessage),
-  carriedFrom: z.object({ review: z.string(), id: z.string() }).nullable().optional(),
+  carriedFrom: CarriedFrom.nullable().optional(),
 });
 
 /** What a human sends to create a comment (server fills ids/timestamps/statuses). */

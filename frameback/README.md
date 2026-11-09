@@ -144,7 +144,7 @@ data lives in a `review/` folder next to each video. There is no telemetry, no a
 
 ## Roadmap
 
-- Time remapping when carrying comments across re-cuts (a `--map` option for `carry`)
+- Remapping of non-cut anchors (B-roll, captions) beyond the primary cuts track, and a manual `--map` override for `carry`
 - Side-by-side comparison of two versions
 - Audio-only and multi-track review
 - Importers for more NLE formats (FCPXML, OTIO)
@@ -167,7 +167,7 @@ Run `frameback <command> --help` for every option. Targets (`<target>`) are a vi
 | `update <target> <id> --status s [--plan] [--reply] [--applied-in] [--seen-revision n] [--json]` | Set agent status, plan and reply |
 | `reply <target> <id> "<message>"` | Add an agent message to a comment thread |
 | `review <target> --state processing\|delivered\|closed [--next-video p]` | Move the review state |
-| `carry <fromVideo> <toVideo>` | Copy comments to the next version for verification |
+| `carry <fromVideo> <toVideo>` | Copy comments to the next version for verification; times are remapped through source time using both versions' cuts (`carriedFrom.remap`: `exact`, `clamped` or `lost`) |
 | `export <target> [--format md\|json]` | Feedback summary for the agent |
 | `timeline <video\|edl> [--json]` | Print the resolved timeline |
 | `mcp [--root dir]` | Run the MCP server on stdio |
