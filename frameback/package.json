@@ -4,20 +4,39 @@
   "description": "Local review tool for agentic video editing: anchor comments to frames, regions, ranges and timeline entities; your AI editing agent picks them up live.",
   "license": "MIT",
   "type": "module",
-  "bin": { "frameback": "dist/cli/index.js" },
-  "files": ["dist", "skills", "docs", "README.md", "LICENSE"],
-  "engines": { "node": ">=20" },
-  "keywords": ["video", "review", "feedback", "ai-agent", "claude-code", "mcp", "video-editing", "annotation"],
+  "bin": {
+    "frameback": "dist/cli/index.js"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "video",
+    "review",
+    "feedback",
+    "ai-agent",
+    "claude-code",
+    "mcp",
+    "video-editing",
+    "annotation"
+  ],
   "scripts": {
     "dev": "concurrently -k -n server,web \"tsx watch src/cli/index.ts open examples/demo/edit/final_demo_v1.mp4 --no-open --dev\" \"vite --config web/vite.config.ts\"",
-    "build": "npm run build:web && npm run build:node",
+    "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run build:web && npm run build:node",
     "build:web": "vite build --config web/vite.config.ts",
     "build:node": "tsup",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p web/tsconfig.json",
     "test": "vitest run",
-    "e2e": "playwright test -c e2e/playwright.config.ts",
     "demo:make": "node examples/make-demo.mjs",
-    "demo": "npm run build && npm run demo:make && node dist/cli/index.js open examples/demo/edit/final_demo_v1.mp4"
+    "demo": "npm run build && npm run demo:make && node dist/cli/index.js open examples/demo/edit/final_demo_v1.mp4",
+    "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",
@@ -27,7 +46,6 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
-    "@playwright/test": "^1.49.1",
     "@types/express": "^4.17.21",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
