@@ -35,7 +35,7 @@ After you deliver a video (preview or final):
 2. Announce the printed URL to the user in one line, plus what to do: comment as you watch, press **Process review**
    when done.
 3. Start listening, before anything else is on disk to miss:
-   - **Preferred**: the Monitor tool running `frameback watch <video> --json`. Every stdout line is one event, so
+   - **Preferred**: the Monitor tool running `frameback watch <video> --json --actor human,system`. Every stdout line is one event, so
      every comment becomes one notification.
    - Fallback A: a background Bash task `frameback watch <video> --json --exit-on review.submitted` (one
      notification when the review is submitted; read comments with `frameback list`).
@@ -84,7 +84,7 @@ Other events:
 6. `frameback open <next video>`: previous comments are carried over automatically as "verify" items. Announce the
    new URL and a two-line summary of what changed. Carried comments do not trigger new work.
 7. **Switch the watch to the new version**: stop the previous watch (it is tied to the old video's `events.ndjson`
-   and never ends on its own) and start `frameback watch <next video> --json` (Monitor). Without this, the
+   and never ends on its own) and start `frameback watch <next video> --json --actor human,system` (Monitor). Without this, the
    reviewer's `reopened` and new comments on the next version reach nobody.
 
 ## Rules

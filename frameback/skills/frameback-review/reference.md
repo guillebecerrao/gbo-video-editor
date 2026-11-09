@@ -9,7 +9,7 @@ If `frameback` is not on PATH, use the clone: `npm install && npm run build && n
 | Goal | Command |
 |------|---------|
 | Open the UI for a video (registers on an already running instance) | `frameback open <video> [--port 4747] [--no-open] [--edl p] [--timeline p] [--no-carry]` |
-| Stream events (one per line) | `frameback watch <target> --json [--since <seq>] [--tail] [--exit-on review.submitted]` |
+| Stream events (one per line) | `frameback watch <target> --json [--actor human,system] [--since <seq>] [--tail] [--exit-on review.submitted]` |
 | Same, human readable | `frameback watch <target> --text` |
 | List comments and resume point | `frameback list <target> --json [--agent-status pending,needs_info]` (returns `{lastSeq, review, comments}`) |
 | One comment (with snapshot path) | `frameback show <target> <id> --json` |

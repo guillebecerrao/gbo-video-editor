@@ -114,7 +114,7 @@ Every line: `{ "seq": 12, "at": "ISO", "type": "<type>", "review": "<stem>", "co
 ### CLI (works everywhere)
 
 ```
-frameback watch <video|reviewDir> [--since <seq>] [--exit-on review.submitted] [--json|--text]
+frameback watch <video|reviewDir> [--since <seq>] [--tail] [--exit-on review.submitted] [--actor human,agent,system] [--json|--text]
 frameback list  <video|reviewDir> [--agent-status pending,needs_info] [--json]
 frameback show  <reviewDir> <commentId> [--json]
 frameback update <reviewDir> <commentId> --status <agentStatus> [--plan …] [--reply …] [--applied-in <stem>] [--seen-revision <n>] [--json]
@@ -125,6 +125,7 @@ frameback export <reviewDir> [--format md|json]       # FEEDBACK.md-style summar
 ```
 
 `watch --json` prints exactly one Event JSON per line on stdout and flushes; diagnostics go to stderr.
+Agents should pass `--actor human,system` so they are not notified of their own writes.
 Designed for Claude Code: run it with the Monitor tool (one notification per comment) or as a background task with
 `--exit-on review.submitted` (one notification when the review is done).
 

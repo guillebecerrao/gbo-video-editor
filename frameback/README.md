@@ -97,7 +97,7 @@ other), an optional action (remove, change, add, move, keep, question) and a pri
 ## The agent loop
 
 1. The agent delivers a video and runs `frameback open <video>`.
-2. It listens: **Claude Code** runs `frameback watch <video> --json` with the Monitor tool (one notification per
+2. It listens: **Claude Code** runs `frameback watch <video> --json --actor human,system` with the Monitor tool (one notification per
    comment), or a background task with `--exit-on review.submitted`.
 3. For each comment it looks at the snapshot, then acknowledges, prepares a change against a *staging* edit, or asks a
    question in the thread. You see statuses and replies update live.
