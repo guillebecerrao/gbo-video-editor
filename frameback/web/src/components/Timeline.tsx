@@ -4,7 +4,7 @@ import {
 import type { Waveform } from "@core/api";
 import type { Comment, EntityRef, Review, Timeline as TimelineData, TimelineItem } from "@core/schema";
 import { useTime, type TimeStore } from "../hooks/useVideo";
-import { spanOf } from "../lib/comments";
+import { isResolved, spanOf } from "../lib/comments";
 import { clamp, formatClock, formatSpan } from "../lib/time";
 import {
   indexTrack, itemEnd, mergeRuns, packRows, tickStep, visibleItems, visibleWindow, type IndexedTrack,
@@ -322,10 +322,10 @@ const CommentsLane = memo(function CommentsLane(p: {
           return (
             <button
               key={c.id}
-              className={`cm st-${c.agent.status}${isRange ? " range" : " point"}${c.id === p.focusId ? " focus" : ""}`}
+              className={`cm st-${c.agent.status}${isResolved(c) ? " resolved" : ""}${isRange ? " range" : " point"}${c.id === p.focusId ? " focus" : ""}`}
               style={{ left: start * p.pps, width: isRange ? (end - start) * p.pps : undefined, top: 4 + Math.min(rows[i], 3) * 16 }}
               onClick={(e) => { e.stopPropagation(); p.onFocus(c.id); }}
-              title={`${c.id} · ${c.category} · ${c.body.slice(0, 80)}`}
+              title={`${isResolved(c) ? "Resolved · " : ""}${c.id} · ${c.category} · ${c.body.slice(0, 80)}`}
               aria-label={`Comment ${c.id}`}
             />
           );
