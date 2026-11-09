@@ -71,3 +71,15 @@ export function packRows(spans: { start: number; end: number }[], gap = 0): { ro
   }
   return { rows, count: Math.max(1, rowEnds.length) };
 }
+
+/** Merge items whose gap is below `minGap` seconds into runs (level of detail for dense tracks). Items must be sorted by start. */
+export function mergeRuns(items: TimelineItem[], minGap: number): { start: number; end: number }[] {
+  const runs: { start: number; end: number }[] = [];
+  for (const it of items) {
+    const end = itemEnd(it);
+    const last = runs[runs.length - 1];
+    if (last && it.start - last.end <= minGap) last.end = Math.max(last.end, end);
+    else runs.push({ start: it.start, end });
+  }
+  return runs;
+}

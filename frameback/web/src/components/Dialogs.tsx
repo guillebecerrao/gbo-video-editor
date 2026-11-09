@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Comment } from "@core/schema";
-import { filterCounts, hasUnansweredQuestion } from "../lib/comments";
+import { filterCounts, hasUnansweredQuestion, isAnsweredWaiting } from "../lib/comments";
 import { formatTimecode } from "../lib/time";
 import { Modal } from "./Modal";
 import { SendIcon } from "./icons";
@@ -16,6 +16,7 @@ export function ProcessDialog({ comments, fps, onConfirm, onClose, onSeek }: {
   const counts = filterCounts(comments);
   const open = comments.filter((c) => c.human.status === "open" || c.human.status === "reopened");
   const questions = comments.filter(hasUnansweredQuestion);
+  const answered = comments.filter(isAnsweredWaiting);
   const rows: [string, number][] = [
     ["Comments", comments.length],
     ["Must-fix", comments.filter((c) => c.priority === "must").length],
@@ -53,6 +54,9 @@ export function ProcessDialog({ comments, fps, onConfirm, onClose, onSeek }: {
               {questions.length > 5 && <li className="muted">and {questions.length - 5} more</li>}
             </ul>
           </div>
+        )}
+        {answered.length > 0 && (
+          <p className="muted small">{answered.length} answered question{answered.length > 1 ? "s" : ""} the agent has not picked up yet. They will be used when it processes the review.</p>
         )}
         {open.length === 0 && comments.length > 0 && <p className="muted small">All comments are resolved or verified.</p>}
       </div>

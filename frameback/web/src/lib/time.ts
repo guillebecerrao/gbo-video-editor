@@ -22,7 +22,7 @@ export function stepFrames(t: number, delta: number, fps: number, duration: numb
 
 const pad = (n: number, width = 2) => String(n).padStart(width, "0");
 
-/** `mm:ss.ff` (`h:mm:ss.ff` from one hour on). */
+/** `mm:ss+ff` (`h:mm:ss+ff` from one hour on). `ff` is a frame count, so it is set apart with `+` to avoid reading it as decimal seconds. */
 export function formatTimecode(t: number, fps: number = FALLBACK_FPS): string {
   const n = frameIndex(t, fps);
   const whole = Math.floor(n / fps);
@@ -31,7 +31,7 @@ export function formatTimecode(t: number, fps: number = FALLBACK_FPS): string {
   const h = Math.floor(whole / 3600);
   const m = Math.floor((whole % 3600) / 60);
   const s = whole % 60;
-  return h > 0 ? `${h}:${pad(m)}:${pad(s)}.${ffText}` : `${pad(m)}:${pad(s)}.${ffText}`;
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}+${ffText}` : `${pad(m)}:${pad(s)}+${ffText}`;
 }
 
 /** Compact clock for ruler labels: `m:ss` or `h:mm:ss`, with decimals when `decimals` > 0. */

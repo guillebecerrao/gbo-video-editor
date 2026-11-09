@@ -36,7 +36,12 @@ export function isStale(c: Comment): boolean {
 
 /** Carried over from a previous version and still waiting for the human to verify or reopen it. */
 export function needsVerification(c: Comment): boolean {
-  return c.carriedFrom != null && c.human.status === "open";
+  return c.carriedFrom != null && c.human.status === "open" && (c.agent.status === "applied" || c.agent.appliedIn != null);
+}
+
+/** Carried over from a previous version but the agent never applied it, so there is nothing to verify yet. */
+export function isCarriedOpen(c: Comment): boolean {
+  return c.carriedFrom != null && c.human.status === "open" && !needsVerification(c);
 }
 
 export function isAlive(c: Comment): boolean {
@@ -45,9 +50,15 @@ export function isAlive(c: Comment): boolean {
 
 /** The agent asked something the human has not answered yet. */
 export function hasUnansweredQuestion(c: Comment): boolean {
-  if (c.agent.status === "needs_info") return true;
   const last = c.thread[c.thread.length - 1];
+  if (last?.author === "human") return false;
+  if (c.agent.status === "needs_info") return true;
   return last?.author === "agent" && c.agent.status !== "applied" && c.agent.status !== "declined";
+}
+
+/** The agent asked, the human answered, and the agent has not picked it up yet. */
+export function isAnsweredWaiting(c: Comment): boolean {
+  return c.agent.status === "needs_info" && c.thread[c.thread.length - 1]?.author === "human";
 }
 
 const ACTION_STATUSES: AgentStatus[] = ["pending", "acknowledged", "in_progress", "needs_info"];
@@ -58,7 +69,7 @@ export function matchesFilter(c: Comment, f: FilterId): boolean {
     case "needs_action": return ACTION_STATUSES.includes(c.agent.status) || isStale(c);
     case "prepared": return c.agent.status === "prepared";
     case "applied": return c.agent.status === "applied";
-    case "needs_info": return c.agent.status === "needs_info";
+    case "needs_info": return hasUnansweredQuestion(c) && c.agent.status === "needs_info";
     case "to_verify": return needsVerification(c);
   }
 }

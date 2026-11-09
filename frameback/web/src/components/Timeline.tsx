@@ -7,7 +7,7 @@ import { useTime, type TimeStore } from "../hooks/useVideo";
 import { spanOf } from "../lib/comments";
 import { clamp, formatClock } from "../lib/time";
 import {
-  indexTrack, itemEnd, packRows, tickStep, visibleItems, visibleWindow, type IndexedTrack,
+  indexTrack, itemEnd, mergeRuns, packRows, tickStep, visibleItems, visibleWindow, type IndexedTrack,
 } from "../lib/virtual";
 
 export const GUTTER = 128;
@@ -16,6 +16,8 @@ const MAX_PPS = 800;
 const WORDS_LABEL_MIN_PPS = 70;
 const MARKER_LABEL_MIN_PPS = 40;
 const DRAG_THRESHOLD_PX = 4;
+const DENSE_MIN_ITEMS = 300;
+const DENSE_PX_PER_ITEM = 6;
 
 export interface TimelineProps {
   timeline: TimelineData | null;
@@ -101,13 +103,23 @@ export function Timeline(p: TimelineProps) {
   useEffect(() => {
     const sc = scrollRef.current;
     if (!sc) return;
+    // Wheel notches arrive faster than a render: fold them into one zoom per animation frame.
+    const acc = { factor: 1, x: 0, raf: 0 };
     const onWheel = (e: WheelEvent) => {
       if (!(e.ctrlKey || e.metaKey)) return;
       e.preventDefault();
-      zoomAt(ppsRef.current * Math.exp(-e.deltaY * 0.002), e.clientX);
+      acc.factor *= Math.exp(-e.deltaY * 0.002);
+      acc.x = e.clientX;
+      if (acc.raf) return;
+      acc.raf = requestAnimationFrame(() => {
+        acc.raf = 0;
+        const f = acc.factor;
+        acc.factor = 1;
+        zoomAt(ppsRef.current * f, acc.x);
+      });
     };
     sc.addEventListener("wheel", onWheel, { passive: false });
-    return () => sc.removeEventListener("wheel", onWheel);
+    return () => { sc.removeEventListener("wheel", onWheel); cancelAnimationFrame(acc.raf); };
   }, [zoomAt]);
 
   // ---- keep the playhead in view
@@ -152,7 +164,13 @@ export function Timeline(p: TimelineProps) {
               const v = Number(e.target.value);
               const sc = scrollRef.current;
               const rect = sc?.getBoundingClientRect();
-              zoomAt(v === 0 ? fit : fit * Math.pow(MAX_PPS / fit, v), rect ? rect.left + GUTTER + (rect.width - GUTTER) / 2 : 0);
+              // Zoom around the playhead when it is on screen, otherwise around the middle of the view.
+              let anchorX = rect ? rect.left + GUTTER + (rect.width - GUTTER) / 2 : 0;
+              if (sc && rect) {
+                const headX = GUTTER + time.get() * ppsRef.current - sc.scrollLeft;
+                if (headX >= GUTTER && headX <= rect.width) anchorX = rect.left + headX;
+              }
+              zoomAt(v === 0 ? fit : fit * Math.pow(MAX_PPS / fit, v), anchorX);
             }}
           />
         </label>
@@ -226,7 +244,7 @@ interface RulerProps {
 
 function Ruler({ duration, pps, t0, t1, timeAt, onSeek, onRange, interacting }: RulerProps) {
   const step = tickStep(pps);
-  const decimals = step < 0.1 ? 2 : step < 1 ? 1 : 0;
+  const decimals = step >= 1 ? 0 : Math.abs(step * 10 - Math.round(step * 10)) < 1e-6 ? 1 : 2;
   const ticks: number[] = [];
   const minorStep = step / 5;
   const showMinor = minorStep * pps >= 8;
@@ -369,6 +387,21 @@ const TrackLane = memo(function TrackLane({ idx, pps, t0, t1, entity, timeAt, on
   const { track } = idx;
   const items = visibleItems(idx, t0, t1);
   const isWords = track.id === "words";
+  // Level of detail: when items are a few pixels apart, draw merged density blocks instead of thousands of buttons.
+  const dense = track.kind !== "markers" && items.length > DENSE_MIN_ITEMS && ((t1 - t0) * pps) / items.length < DENSE_PX_PER_ITEM;
+  if (dense) {
+    const runs = mergeRuns(items, 3 / pps);
+    return (
+      <div className={`lane lane-${track.id}`} style={{ height: isWords ? 22 : 28 }}>
+        <div className="lane-label" title={track.label}>{track.label}<span className="lane-count">{track.items.length}</span></div>
+        <div className="lane-track" style={{ left: GUTTER }} onClick={(e) => onSeek(timeAt(e.clientX))} title="Zoom in to pick individual items">
+          {runs.map((r, i) => (
+            <span key={i} className="block dense" style={{ left: r.start * pps, width: Math.max(2, (r.end - r.start) * pps) }} />
+          ))}
+        </div>
+      </div>
+    );
+  }
   const height = isWords ? 22 : 28;
   const showWordText = pps >= WORDS_LABEL_MIN_PPS;
   return (

@@ -57,6 +57,7 @@ export function Player(p: PlayerProps) {
           onDoubleClick={(e) => e.preventDefault()}
         />
         <FrameLayer {...p} frame={frame} />
+        <MarksReadout marks={p.marks} fps={fps} />
         {!video.playing && <div className="stage-hint">{p.regionTool ? "Drag to outline a region · click for a point" : ""}</div>}
       </div>
       <Controls {...p} />
@@ -218,7 +219,6 @@ function Controls(p: PlayerProps) {
 
       <div className="spacer" />
 
-      <MarksReadout marks={p.marks} fps={fps} />
       <button
         className={`btn${p.regionTool ? " on" : ""}`}
         onClick={p.onToggleRegionTool}
@@ -238,7 +238,7 @@ function Controls(p: PlayerProps) {
 function MarksReadout({ marks, fps }: { marks: Marks; fps: number }) {
   if (marks.in == null && marks.out == null) return null;
   return (
-    <div className="marks" title="In / out (I, O · X clears)">
+    <div className="marks" title="In / out (I, O · X clears)" role="status">
       <span>In {marks.in != null ? formatTimecode(marks.in, fps) : "—"}</span>
       <span>Out {marks.out != null ? formatTimecode(marks.out, fps) : "—"}</span>
     </div>

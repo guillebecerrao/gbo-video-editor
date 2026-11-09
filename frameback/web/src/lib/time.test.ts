@@ -19,13 +19,13 @@ describe("frames", () => {
 });
 
 describe("formatting", () => {
-  it("formats mm:ss.ff", () => {
-    expect(formatTimecode(0, 24)).toBe("00:00.00");
-    expect(formatTimecode(12.5, 24)).toBe("00:12.12");
-    expect(formatTimecode(75.0, 30)).toBe("01:15.00");
+  it("formats mm:ss+ff", () => {
+    expect(formatTimecode(0, 24)).toBe("00:00+00");
+    expect(formatTimecode(12.5, 24)).toBe("00:12+12");
+    expect(formatTimecode(75.0, 30)).toBe("01:15+00");
   });
   it("adds hours when needed", () => {
-    expect(formatTimecode(3725, 24)).toBe("1:02:05.00");
+    expect(formatTimecode(3725, 24)).toBe("1:02:05+00");
   });
   it("formats ruler clocks", () => {
     expect(formatClock(65)).toBe("1:05");
@@ -33,7 +33,7 @@ describe("formatting", () => {
     expect(formatClock(1.25, 2)).toBe("0:01.25");
   });
   it("formats spans", () => {
-    expect(formatSpan(1, null, 24)).toBe("00:01.00");
-    expect(formatSpan(1, 2, 24)).toBe("00:01.00–00:02.00");
+    expect(formatSpan(1, null, 24)).toBe("00:01+00");
+    expect(formatSpan(1, 2, 24)).toBe("00:01+00–00:02+00");
   });
 });

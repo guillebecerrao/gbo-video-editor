@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CATEGORIES, PRIORITIES, type Category, type Comment, type CommentPatch, type HumanStatus, type Priority, type ReviewState } from "@core/schema";
 import { snapshotUrl } from "../api/client";
 import {
-  AGENT_LABEL, CATEGORY_ICON, FILTERS, PRIORITY_LABEL, canEdit, filterCounts, hasUnansweredQuestion, isStale, matchesFilter,
+  AGENT_LABEL, CATEGORY_ICON, FILTERS, PRIORITY_LABEL, canEdit, filterCounts, hasUnansweredQuestion, isAnsweredWaiting, isCarriedOpen, isStale, matchesFilter,
   needsVerification, sortByTime, type FilterId,
 } from "../lib/comments";
 import { formatSpan } from "../lib/time";
@@ -16,6 +16,8 @@ interface PanelProps {
   state: ReviewState;
   focusId: string | null;
   composer: ReactNode;
+  /** id of the draft being composed, or null */
+  draftId: number | null;
   onFocus: (c: Comment) => void;
   onPatch: (id: string, patch: CommentPatch) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
@@ -29,6 +31,11 @@ export function CommentsPanel(p: PanelProps) {
   const shown = sortByTime(p.comments.filter((c) => matchesFilter(c, filter)));
   const listRef = useRef<HTMLDivElement>(null);
 
+  // A new draft always starts with its anchor chips in view.
+  useEffect(() => {
+    if (p.draftId != null) listRef.current?.scrollTo({ top: 0 });
+  }, [p.draftId]);
+
   useEffect(() => {
     if (!p.focusId) return;
     listRef.current?.querySelector(`[data-comment="${p.focusId}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
@@ -37,7 +44,7 @@ export function CommentsPanel(p: PanelProps) {
   return (
     <aside className="panel" aria-label="Comments">
       <header className="panel-head">
-        <h2>Comments <span className="count">{p.comments.length}</span></h2>
+        <h2>{p.comments.length === 1 ? "Comment" : "Comments"} <span className="count">{p.comments.length}</span></h2>
         <div className="filters" role="tablist" aria-label="Filter comments">
           {FILTERS.filter((f) => f.id === "all" || counts[f.id] > 0 || filter === f.id).map((f) => (
             <button key={f.id} role="tab" aria-selected={filter === f.id} className={filter === f.id ? "on" : ""} onClick={() => setFilter(f.id)}>
@@ -48,7 +55,7 @@ export function CommentsPanel(p: PanelProps) {
       </header>
       <div className="panel-body" ref={listRef}>
         {p.composer}
-        {p.comments.length === 0 && <EmptyState />}
+        {p.comments.length === 0 && p.draftId == null && <EmptyState />}
         {p.comments.length > 0 && shown.length === 0 && <p className="empty-filter">Nothing matches this filter.</p>}
         {shown.map((c) => (
           <CommentCard key={c.id} comment={c} {...p} focused={c.id === p.focusId} />
@@ -86,6 +93,8 @@ function CommentCard({ comment: c, rid, fps, state, focused, onFocus, onPatch, o
   const stale = isStale(c);
   const verify = needsVerification(c);
   const question = hasUnansweredQuestion(c);
+  const answeredWaiting = isAnsweredWaiting(c);
+  const carriedOpen = isCarriedOpen(c);
   const done = c.human.status === "verified" || c.human.status === "resolved_by_human";
   const region = c.anchor.region;
 
@@ -153,6 +162,10 @@ function CommentCard({ comment: c, rid, fps, state, focused, onFocus, onPatch, o
           <button className="btn small" onClick={() => onStatus(c.id, "reopened")}>Reopen</button>
         </div>
       )}
+      {carriedOpen && (
+        <p className="muted small carried-line">Still open from the previous version (was #{c.carriedFrom?.id.replace(/^c-/, "")}).</p>
+      )}
+      {verify && c.carriedFrom && <p className="muted small carried-line">Was #{c.carriedFrom.id.replace(/^c-/, "")} in the previous version.</p>}
       {c.human.status === "verified" && <p className="muted small verified-line"><CheckIcon /> Verified</p>}
       {c.human.status === "reopened" && <p className="muted small">Reopened — the agent will look again.</p>}
 
@@ -163,6 +176,7 @@ function CommentCard({ comment: c, rid, fps, state, focused, onFocus, onPatch, o
           ))}
         </ul>
       )}
+      {answeredWaiting && !replying && !editing && <p className="muted small answered-line"><CheckIcon /> Answered, waiting for the agent.</p>}
       {(replying || question) && !editing && (
         <ReplyBox
           autoFocus={replying}

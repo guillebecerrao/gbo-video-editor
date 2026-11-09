@@ -19,12 +19,20 @@ import { FALLBACK_FPS, frameCenter, frameIndex } from "./lib/time";
 const NO_MARKS: Marks = { in: null, out: null };
 const TL_HEIGHT_KEY = "frameback.timelineHeight";
 
-function readStoredHeight(): number {
+/** Height a timeline needs to show every lane, capped to a share of the window. */
+function autoHeight(laneCount: number, hasWave: boolean): number {
+  const need = 40 + 26 + 30 + (hasWave ? 40 : 0) + laneCount * 28 + 12;
+  return Math.max(200, Math.min(need, Math.round(window.innerHeight * 0.45)));
+}
+
+/** The height the viewer chose, or null to size from the lanes. */
+function readStoredHeight(): number | null {
   try {
-    const v = Number(localStorage.getItem(TL_HEIGHT_KEY));
-    return Number.isFinite(v) && v >= 120 ? v : 260;
+    const raw = localStorage.getItem(TL_HEIGHT_KEY);
+    const v = Number(raw);
+    return raw != null && Number.isFinite(v) && v >= 120 ? v : null;
   } catch {
-    return 260;
+    return null;
   }
 }
 
@@ -111,15 +119,17 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
   const [waveform, setWaveform] = useState<Waveform | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showProcess, setShowProcess] = useState(false);
-  const [tlHeight, setTlHeight] = useState(readStoredHeight);
+  const [tlHeight, setTlHeight] = useState(() => readStoredHeight() ?? autoHeight(bundle.timeline?.tracks.length ?? 0, true));
   const draftCounter = useRef(0);
+  const draftBody = useRef("");
 
   useEffect(() => { document.title = `${bundle.videoName} · Frameback`; }, [bundle.videoName]);
 
-  // Persist the timeline height as a per-viewer convenience.
-  useEffect(() => {
-    try { localStorage.setItem(TL_HEIGHT_KEY, String(Math.round(tlHeight))); } catch { /* storage unavailable */ }
-  }, [tlHeight]);
+  // Persist the timeline height as a per-viewer convenience, only once the viewer resized it.
+  const resizeTimeline = useCallback((h: number) => {
+    setTlHeight(h);
+    try { localStorage.setItem(TL_HEIGHT_KEY, String(Math.round(h))); } catch { /* storage unavailable */ }
+  }, []);
 
   // Waveform is optional: no ffmpeg on the server means no lane.
   useEffect(() => {
@@ -150,11 +160,14 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
     video.pause();
     setDraft((d) => {
       if (d) return { ...d, ...patch };
+      const now = video.time.get();
+      // In and Out: that range. Only In set and the playhead is past it: In to the playhead.
       const range = marks.in != null && marks.out != null && marks.out > marks.in;
+      const inToHead = !range && marks.in != null && marks.out == null && now > marks.in;
       return {
         id: ++draftCounter.current,
-        start: range ? marks.in! : video.time.get(),
-        end: range ? marks.out : null,
+        start: range || inToHead ? marks.in! : now,
+        end: range ? marks.out : inToHead ? now : null,
         region: null,
         entity: null,
         ...patch,
@@ -164,6 +177,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
   };
 
   const cancelComposing = () => {
+    draftBody.current = "";
     setDraft(null);
     setMarks(NO_MARKS);
     setRegionTool(false);
@@ -188,6 +202,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
     if (!editable) return;
     if (draft) setDraft({ ...draft, start, end });
     else setMarks({ in: start, out: end });
+    seek(start);
   };
 
   const onPickEntity = (trackId: string, item: TimelineItem) => {
@@ -272,12 +287,20 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
   };
 
   // ---- keyboard (always reads the latest handlers through a ref)
+  const setBody = useCallback((t: string) => { draftBody.current = t; }, []);
   const keys = useRef<(e: KeyboardEvent) => void>(() => {});
   keys.current = (e) => {
     if (document.querySelector('[aria-modal="true"]')) return;
     const target = e.target as HTMLElement;
     const typing = target.matches("input, textarea, select, [contenteditable='true']");
     if (e.key === "Escape") {
+      // Never throw away typed text with a reflex Esc: the first one only leaves the field, the next one asks.
+      if (draft && draftBody.current.trim()) {
+        e.preventDefault();
+        if (typing) target.blur();
+        else if (window.confirm("Discard this comment?")) cancelComposing();
+        return;
+      }
       if (draft || regionTool || marks.in != null || marks.out != null) {
         cancelComposing();
         e.preventDefault();
@@ -327,6 +350,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
         onChange={setDraft}
         onSend={sendComment}
         onCancel={cancelComposing}
+        onBody={setBody}
       />
     );
 
@@ -356,6 +380,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
           state={review.state}
           focusId={focusId}
           composer={composer}
+          draftId={editable && draft ? draft.id : null}
           onFocus={focusComment}
           onPatch={patchComment}
           onDelete={deleteComment}
@@ -374,7 +399,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
         focusId={focusId}
         waveform={waveform}
         height={tlHeight}
-        onHeight={setTlHeight}
+        onHeight={resizeTimeline}
         onSeek={seek}
         onPickEntity={onPickEntity}
         onRange={onRange}
