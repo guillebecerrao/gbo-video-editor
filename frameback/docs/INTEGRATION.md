@@ -127,12 +127,17 @@ A ready-made Claude Code skill implementing this loop lives in `skills/frameback
 Your tool should work without Frameback. Detect it, and degrade to your normal feedback flow:
 
 ```sh
-if command -v frameback >/dev/null 2>&1 || npx --no-install frameback --version >/dev/null 2>&1; then
-  frameback open "$VIDEO" --no-open   # prints the URL to hand to the user
+if command -v frameback >/dev/null 2>&1; then FB=frameback
+elif npx --no-install frameback --version >/dev/null 2>&1; then FB='npx --no-install frameback'
+fi
+if [ -n "$FB" ]; then
+  $FB open "$VIDEO" --no-open   # prints the URL to hand to the user
 else
   echo "Frameback not installed; continuing without a review UI"
 fi
 ```
+
+Until the package is on npm, install from a clone with `npm install && npm run build && npm link`.
 
 Guidelines: never install it silently; never block delivery on it; keep emitting your usual outputs. The sidecar is
 inert if Frameback is absent.

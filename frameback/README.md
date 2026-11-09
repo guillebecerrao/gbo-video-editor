@@ -7,7 +7,7 @@ and write what you want changed. Your agent sees it the moment you send it, prep
 reviewing, and renders the next version once. 100% local, open source, no accounts.
 
 Created by **Guillermo Becerra (GBO)** as a companion to his agentic editing workflow.
-<!-- TODO: add links -->
+[Source](https://github.com/guillebecerrao/gbo-video-editor/tree/main/frameback) · [Issues](https://github.com/guillebecerrao/gbo-video-editor/issues) · [Security](SECURITY.md)
 
 ## The problem
 
@@ -46,19 +46,33 @@ conveniences over the same files. See [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 
 Requires Node 20+. ffmpeg is optional (waveform and video probing); the demo generator needs it.
 
+Frameback is not published on npm yet, so install it from a clone. This puts a `frameback` command on your PATH,
+which is what the agent skill calls from inside your video project:
+
 ```sh
-npx frameback open video.mp4
+git clone https://github.com/guillebecerrao/gbo-video-editor.git
+cd gbo-video-editor/frameback
+npm install && npm run build && npm link     # `frameback --version` should now work anywhere
+```
+
+Then, from your video's folder:
+
+```sh
+frameback open video.mp4
 ```
 
 The UI opens in your browser. Press `C` to comment at the playhead. Nothing else to configure.
+(Once the package is on npm, `npm i -g frameback` or `npx frameback …` will work too.)
 
-Try it with synthetic demo footage, from a clone of this repo:
+Try it with synthetic demo footage, from the clone (needs ffmpeg and ffprobe):
 
 ```sh
-npm install
-npm run demo        # builds, generates a demo project with ffmpeg, opens the review UI
+npm run demo        # builds if needed, generates the demo once, opens the review UI on port 4747
 node examples/fake-agent.mjs examples/demo/edit/final_demo_v1.mp4   # in another terminal: a scripted agent
 ```
+
+The URL is printed on start. To use another port: `node dist/cli/index.js open examples/demo/edit/final_demo_v1.mp4 --port 4880`.
+<!-- Screenshot / GIF of the review UI: add docs/media/frameback.gif and embed it here before announcing. -->
 
 ## Ways to anchor a comment
 
@@ -72,6 +86,13 @@ node examples/fake-agent.mjs examples/demo/edit/final_demo_v1.mp4   # in another
 Each comment also has a category (cut, transition, framing, color, motion, audio, caption, b-roll, element, pacing,
 other), an optional action (remove, change, add, move, keep, question) and a priority (must, should, nit).
 
+## Use with Claude Code
+
+1. Install the skill (and optionally the MCP server), see below.
+2. Ask your agent: *"deliver the video and open it in Frameback"* or *"review this with Frameback"*.
+3. Comment in the browser while you watch. The skill starts the Monitor tool itself, so you do not set anything
+   up; press **Process review** when you are done and the agent renders the next version.
+
 ## The agent loop
 
 1. The agent delivers a video and runs `frameback open <video>`.
@@ -80,13 +101,16 @@ other), an optional action (remove, change, add, move, keep, question) and a pri
 3. For each comment it looks at the snapshot, then acknowledges, prepares a change against a *staging* edit, or asks a
    question in the thread. You see statuses and replies update live.
 4. You press **Process review**. The agent finishes what is left, renders **once** to `…_v2.mp4`, marks comments
-   `applied`, and opens the new version. Your previous comments come along as "verify" items.
+   `applied`, and opens the new version. Your previous comments come along as "verify" items. The agent then stops
+   its old watch and starts a new `frameback watch <next video> --json`, so your `reopened` comments reach it.
 
 Install the ready-made Claude Code skill and, if you prefer tools over a shell, the MCP server:
 
 ```sh
-npx frameback skill install                      # copies skills/frameback-review to ~/.claude/skills
-claude mcp add frameback -- npx -y frameback mcp
+frameback skill install                          # copies skills/frameback-review to ~/.claude/skills
+claude mcp add frameback -- frameback mcp
+# not on PATH? use the clone directly:
+claude mcp add frameback -- node /absolute/path/to/frameback/dist/cli/index.js mcp
 ```
 
 Not using Claude Code? Point any agent at [`docs/INTEGRATION.md`](docs/INTEGRATION.md) (plain files, CLI, or MCP).
@@ -95,8 +119,9 @@ Not using Claude Code? Point any agent at [`docs/INTEGRATION.md`](docs/INTEGRATI
 ## Integrations
 
 - **Any EDL-based pipeline.** If an `edl.json` sits next to the video (`sources`, `ranges`, `broll`, word-level
-  transcripts), Frameback derives cuts, transitions, B-roll, captions and words tracks from it. The shape is the one
-  used by `video-use` and `gbo-style`.
+  transcripts), Frameback derives cuts, transitions, B-roll, captions and words tracks from it. The shape is the
+  `video-use` `edl.json` shape, described in [`docs/PROTOCOL.md`](docs/PROTOCOL.md) §6; it is also used in the
+  author's own editing workflow.
 - **Timeline sidecar.** Emit `<video stem>.timeline.json` for an exact timeline. Spec and converters in
   [`docs/INTEGRATION.md`](docs/INTEGRATION.md).
 - **Versioned deliverables.** `final_v1.mp4` → `final_v2.mp4`: comments are carried to the new version for verification.
@@ -118,7 +143,7 @@ data lives in a `review/` folder next to each video. There is no telemetry, no a
 
 ## Roadmap
 
-- Time remapping when carrying comments across re-cuts (`carry --map`)
+- Time remapping when carrying comments across re-cuts (a `--map` option for `carry`)
 - Side-by-side comparison of two versions
 - Audio-only and multi-track review
 - Importers for more NLE formats (FCPXML, OTIO)
@@ -138,10 +163,10 @@ Run `frameback <command> --help` for every option. Targets (`<target>`) are a vi
 | `watch <target> [--since n] [--tail] [--json\|--text] [--exit-on type]` | Stream review events, one per line |
 | `list <target> [--agent-status …] [--json]` | List comments; `--json` returns `{lastSeq, review, comments}` |
 | `show <target> <id> [--json]` | Show one comment |
-| `update <target> <id> --status s [--plan] [--reply] [--applied-in]` | Set agent status, plan and reply |
+| `update <target> <id> --status s [--plan] [--reply] [--applied-in] [--seen-revision n] [--json]` | Set agent status, plan and reply |
 | `reply <target> <id> "<message>"` | Add an agent message to a comment thread |
 | `review <target> --state processing\|delivered\|closed [--next-video p]` | Move the review state |
-| `carry <fromVideo> <toVideo> [--map json]` | Copy comments to the next version for verification |
+| `carry <fromVideo> <toVideo>` | Copy comments to the next version for verification |
 | `export <target> [--format md\|json]` | Feedback summary for the agent |
 | `timeline <video\|edl> [--json]` | Print the resolved timeline |
 | `mcp [--root dir]` | Run the MCP server on stdio |

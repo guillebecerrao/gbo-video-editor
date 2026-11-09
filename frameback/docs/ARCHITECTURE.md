@@ -19,7 +19,7 @@ That is slow, ambiguous, and serial: the agent waits idle until the whole review
 2. Anchor comments to: a **point in time**, a **time range**, a **region of the frame** (rectangle/point) at a
    time or over a range, or a **timeline entity** (cut segment, transition, B-roll insert, caption, word).
 3. Show the edit's structure as timeline tracks when an edit description is available (Frameback timeline sidecar,
-   or a `video-use`/`gbo-style` style `edl.json` + word-level transcripts).
+   or a `video-use` style `edl.json` + word-level transcripts).
 4. Persist every comment immediately as plain files (`<video dir>/review/<video stem>/`), with a frame
    snapshot so the agent can **see** what you meant.
 5. Notify the agent session incrementally (`frameback watch`, NDJSON on stdout — designed for Claude Code's
@@ -53,7 +53,7 @@ frameback/
 
 ```
  ┌──────────── browser (web/) ────────────┐        ┌──────── Claude Code session ────────┐
- │ player · region tool · timeline tracks │        │ editing skill (e.g. gbo-style)      │
+ │ player · region tool · timeline tracks │        │ editing skill (any agent)         │
  │ comment composer · status · threads    │        │  ├─ Monitor: `frameback watch --json`   │
  └──────┬─────────────────────▲───────────┘        │  ├─ or MCP: frameback_wait_for_events   │
    REST │                 SSE │                    │  └─ `frameback update <id> --status …`  │
@@ -79,7 +79,7 @@ liveness tail `events.ndjson`. This keeps the protocol inspectable, diff-able, o
 | D2 | One file per comment + append-only event log with monotonically increasing `seq` | Conflict-free concurrent writers (UI vs agent), resumable `watch --since` |
 | D3 | Human fields vs agent fields split inside the comment | Each side only writes its own fields; no lost updates in practice; lock covers the rest |
 | D4 | Times are always **seconds in the reviewed video** (output time). Source mapping is optional metadata | The reviewer only sees the output; the agent maps back via the timeline/EDL |
-| D5 | Generic **timeline sidecar** (`<video>.timeline.json`) + built-in adapter for `edl.json` (video-use / gbo-style shape) | Frameback stays tool-agnostic; editing tools can emit the sidecar; existing EDLs work today |
+| D5 | Generic **timeline sidecar** (`<video>.timeline.json`) + built-in adapter for `edl.json` (video-use shape) | Frameback stays tool-agnostic; editing tools can emit the sidecar; existing EDLs work today |
 | D6 | Frame snapshot (JPEG, region drawn) saved per comment, captured client-side via canvas | Agents can't watch video; a still with the region marked removes ambiguity cheaply |
 | D7 | Review is per delivered file (`final_x_v1.mp4` → `review/final_x_v1/`); `carry` copies comments to the next version | Matches versioned deliverables; verification of fixes happens on the new version |
 | D8 | Single package, `npx frameback open <video>` | Easiest to adopt and publish |
@@ -99,21 +99,19 @@ Comment lifecycle (agent side) lets the agent work **during** the review:
    `appliedIn`), sets review state `delivered` with `nextVideo`.
 5. Reviewer opens the next version (UI offers it); carried comments show as "verify" → `verified` / `reopened`.
 
-## 7. Work breakdown (lanes, built in parallel)
+## 7. Code layout
 
-| Lane | Owns | Delivers |
-|------|------|----------|
-| L0 foundation (orchestrator) | `package.json`, tsconfig, `src/core/schema.ts`, `src/core/store.ts`, `docs/PROTOCOL.md` | The contract every lane codes against |
-| L1 server + CLI | `src/server/**`, `src/cli/**`, `src/core/{timeline,edl,carry,export}*.ts` | `frameback open/watch/list/show/update/review/carry/export/timeline` |
-| L2 web UI | `web/**` | Player, region tool, timeline tracks, composer, comments panel, live status, process button, version switch |
-| L3 MCP | `src/mcp/**` | MCP stdio server with tools incl. long-poll `frameback_wait_for_events` |
-| L4 agent kit + docs | `skills/**`, `examples/**`, `README.md`, `docs/INTEGRATION.md`, `e2e/**` | Generic skill, demo generator, README, Playwright e2e |
-
-Then: integrate → reviewer agents (UX, correctness, protocol/agent-ergonomics, security & privacy, docs) → fix round.
+| Area | Contents |
+|------|----------|
+| `src/core/` | schema, file store, timeline/EDL adapters, carry-over, export: the contract |
+| `src/server/`, `src/cli/` | HTTP API and SSE, the `frameback` command |
+| `src/mcp/` | MCP stdio server |
+| `web/` | React UI |
+| `skills/`, `examples/`, `docs/` | agent skill, demo generator and scripted agent, documentation |
 
 ## 8. Risks
 
 - **Comment drift across versions** (times shift after re-cut) → v0.1 carries comments at the same time and flags
-  them "verify"; agent may pass a time remap when carrying (`frameback carry --map`).
+  them "verify"; a time remap option for `carry` is planned.
 - **Codec support in the browser** (ProRes/HEVC) → document; H.264 MP4 deliverables are the norm.
 - **EDL ↔ delivered file mismatch** → timeline is shown with the source file name and mtime; sidecar preferred.

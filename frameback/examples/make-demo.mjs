@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Generates a synthetic demo project (no real footage) in the same shape an agentic editing pipeline
- * (video-use / gbo-style style) produces:
+ * (video-use style) produces:
  *
  *   examples/demo/
  *     raw/cam_a.mp4, raw/cam_b.mp4, raw/broll_city.mp4   synthetic sources (test patterns + tones)
@@ -12,7 +12,7 @@
  * Usage: node examples/make-demo.mjs [--out examples/demo] [--force]
  * Requires ffmpeg + ffprobe on PATH (or FFMPEG / FFPROBE env vars).
  */
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdirSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -31,6 +31,13 @@ if (existsSync(final) && !FORCE) {
 }
 if (FORCE) rmSync(OUT, { recursive: true, force: true });
 for (const d of ["raw", "edit/transcripts", "edit/.work"]) mkdirSync(path.join(OUT, d), { recursive: true });
+
+for (const bin of [FFMPEG, process.env.FFPROBE || "ffprobe"]) {
+  if (spawnSync(bin, ["-version"], { stdio: "ignore" }).error) {
+    console.error(`ffmpeg and ffprobe are required for the demo (not found: ${bin}).\nInstall: brew install ffmpeg  |  apt install ffmpeg`);
+    process.exit(1);
+  }
+}
 
 const ff = (...a) => execFileSync(FFMPEG, ["-hide_banner", "-loglevel", "error", "-y", ...a], { stdio: "inherit" });
 const W = 1280, H = 720, FPS = 24;

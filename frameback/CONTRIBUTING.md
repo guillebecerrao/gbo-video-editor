@@ -13,6 +13,13 @@ npm run demo:make        # needs ffmpeg; generates synthetic footage in examples
 
 Node 20 or newer. ffmpeg is only required for the demo, the waveform and the smoke test.
 
+To use your clone as the `frameback` command (what agent skills call), run `npm link` after `npm run build`.
+
+## UI development
+
+Run `npm run demo:make` once (it generates `examples/demo/`, which `npm run dev` opens), then `npm run dev`. It
+starts the server with `tsx watch` and the Vite dev server; open the Vite URL it prints.
+
 ## Layout
 
 | Path | What |
@@ -49,6 +56,8 @@ Add tests for behavior changes (vitest, next to the code as `*.test.ts`). Keep c
 imperative ("Add range export"). If you change the protocol or the CLI, update `docs/` and `CHANGELOG.md`.
 
 ## Reporting bugs
+
+Security issues: see [`SECURITY.md`](SECURITY.md), do not open a public issue.
 
 Include the Frameback version, Node version, the video codec, and, if relevant, the contents of
 `review/<stem>/events.ndjson` (remove anything private first).

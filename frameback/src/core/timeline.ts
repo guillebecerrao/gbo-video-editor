@@ -2,7 +2,7 @@
  * Timeline resolution and the `edl.json` adapter.
  *
  * Resolution order for a video: explicit path(s) -> `<dir>/<stem>.timeline.json` sidecar -> `<dir>/edl.json`
- * (video-use / gbo-style shape, see docs/PROTOCOL.md §6) -> null. EDL-derived timelines are `approximate: true`:
+ * (video-use shape, see docs/PROTOCOL.md §6) -> null. EDL-derived timelines are `approximate: true`:
  * the EDL describes the intended cut, not the rendered file.
  */
 import { promises as fs } from "node:fs";
@@ -147,7 +147,7 @@ interface Placed {
 
 type OutTime = (p: Placed, sourceTime: number) => number;
 
-/** Convert a video-use / gbo-style edl.json (+ `transcripts/<source>.json` next to it) into a Timeline. */
+/** Convert a video-use edl.json (+ `transcripts/<source>.json` next to it) into a Timeline. */
 export async function edlToTimeline(edlPath: string): Promise<{ timeline: Timeline; warnings: string[] }> {
   const file = path.resolve(edlPath);
   const edl = parseJson(Edl, await fs.readFile(file, "utf8"), file);

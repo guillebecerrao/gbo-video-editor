@@ -3,6 +3,13 @@
 All notable changes are documented here. Format based on [Keep a Changelog](https://keepachangelog.com/),
 versioning follows [SemVer](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Docs: install-from-clone instructions, `$FB` command resolution in the skill, `carry --map` marked as planned,
+  SECURITY.md, package metadata, `npm run demo` no longer rebuilds or regenerates when not needed.
+
 ## [0.1.0] - 2026-11-09
 
 First release.

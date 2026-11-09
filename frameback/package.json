@@ -3,6 +3,16 @@
   "version": "0.1.0",
   "description": "Local review tool for agentic video editing: anchor comments to frames, regions, ranges and timeline entities; your AI editing agent picks them up live.",
   "license": "MIT",
+  "author": "Guillermo Becerra (GBO)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guillebecerrao/gbo-video-editor.git",
+    "directory": "frameback"
+  },
+  "homepage": "https://github.com/guillebecerrao/gbo-video-editor/tree/main/frameback#readme",
+  "bugs": {
+    "url": "https://github.com/guillebecerrao/gbo-video-editor/issues"
+  },
   "type": "module",
   "bin": {
     "frameback": "dist/cli/index.js"
@@ -12,6 +22,7 @@
     "skills",
     "docs",
     "README.md",
+    "SECURITY.md",
     "LICENSE"
   ],
   "engines": {
@@ -35,7 +46,7 @@
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p web/tsconfig.json",
     "test": "vitest run",
     "demo:make": "node examples/make-demo.mjs",
-    "demo": "npm run build && npm run demo:make && node dist/cli/index.js open examples/demo/edit/final_demo_v1.mp4",
+    "demo": "node -e \"require('fs').existsSync('dist/cli/index.js')||process.exit(1)\" || npm run build; npm run demo:make && node dist/cli/index.js open examples/demo/edit/final_demo_v1.mp4",
     "smoke": "node scripts/smoke.mjs"
   },
   "dependencies": {
