@@ -11,9 +11,7 @@
  *  GET    /api/reviews/:rid                        -> ReviewBundle
  *  GET    /api/reviews/:rid/timeline               -> Timeline | null
  *  GET    /api/reviews/:rid/comments               -> Comment[]                  (non-deleted)
- *  POST   /api/reviews/:rid/comments               -> Comment
- *            body: multipart/form-data with field `comment` (JSON NewComment) and optional file `snapshot` (image/jpeg)
- *            OR application/json NewComment (no snapshot)
+ *  POST   /api/reviews/:rid/comments   CreateCommentRequest (JSON, limit 15 MB) -> Comment
  *  PATCH  /api/reviews/:rid/comments/:id   CommentPatch            -> Comment     (human fields only)
  *  PUT    /api/reviews/:rid/comments/:id/snapshot  (image/jpeg body) -> Comment
  *  POST   /api/reviews/:rid/comments/:id/status  {status: HumanStatus} -> Comment (verified|reopened|resolved_by_human|open)
@@ -71,6 +69,12 @@ export interface Waveform {
   duration: number;
   /** peaks 0..1, length = buckets */
   peaks: number[];
+}
+
+export interface CreateCommentRequest {
+  comment: NewComment;
+  /** optional "data:image/jpeg;base64,…" frame snapshot with the region already drawn */
+  snapshotDataUrl?: string | null;
 }
 
 export const DEFAULT_PORT = 4747;
