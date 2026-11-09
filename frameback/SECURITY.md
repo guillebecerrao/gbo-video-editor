@@ -15,5 +15,6 @@ Frameback is a local tool for a single reviewer.
 ## Reporting a vulnerability
 
 Please report privately, not in a public issue: use GitHub private vulnerability reporting on the repository
-(Security tab, "Report a vulnerability"). Include the Frameback and Node versions and steps to reproduce. Expect a
+(Security tab, "Report a vulnerability"), or email
+[hello@guillebecerrao.cl](mailto:hello@guillebecerrao.cl). Include the Frameback and Node versions and steps to reproduce. Expect a
 first reply within a few days.

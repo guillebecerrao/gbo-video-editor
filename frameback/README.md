@@ -6,7 +6,7 @@ Open the video your AI agent delivered, click on the exact frame, drag a region,
 and write what you want changed. Your agent sees it the moment you send it, prepares the changes while you keep
 reviewing, and renders the next version once. 100% local, open source, no accounts.
 
-Created by **Guillermo Becerra (GBO)** as a companion to his agentic editing workflow.
+Created by **Guillermo Becerra (GBO)** · [@guillebecerrao](https://github.com/guillebecerrao) · as a companion to his agentic editing workflow.
 [Source](https://github.com/guillebecerrao/frameback) · [Issues](https://github.com/guillebecerrao/frameback/issues) · [Security](SECURITY.md)
 
 ## The problem
@@ -147,6 +147,18 @@ data lives in a `review/` folder next to each video. There is no telemetry, no a
 - Side-by-side comparison of two versions
 - Audio-only and multi-track review
 - Importers for more NLE formats (FCPXML, OTIO)
+
+## Author
+
+Frameback is built by **Guillermo Becerra (GBO)**, **@guillebecerrao** everywhere:
+[GitHub](https://github.com/guillebecerrao) ·
+[YouTube](https://www.youtube.com/@guillebecerrao) ·
+[X](https://x.com/guillebecerrao) ·
+[Instagram](https://www.instagram.com/guillebecerrao) ·
+[Facebook](https://www.facebook.com/guillebecerrao) ·
+[Builderia](https://builderia.lat)
+
+Contact: [hello@guillebecerrao.cl](mailto:hello@guillebecerrao.cl)
 
 ## License
 
