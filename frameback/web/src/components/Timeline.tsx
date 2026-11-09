@@ -5,7 +5,7 @@ import type { Waveform } from "@core/api";
 import type { Comment, EntityRef, Review, Timeline as TimelineData, TimelineItem } from "@core/schema";
 import { useTime, type TimeStore } from "../hooks/useVideo";
 import { spanOf } from "../lib/comments";
-import { clamp, formatClock } from "../lib/time";
+import { clamp, formatClock, formatSpan } from "../lib/time";
 import {
   indexTrack, itemEnd, mergeRuns, packRows, tickStep, visibleItems, visibleWindow, type IndexedTrack,
 } from "../lib/virtual";
@@ -22,6 +22,7 @@ const DENSE_PX_PER_ITEM = 6;
 export interface TimelineProps {
   timeline: TimelineData | null;
   timelineInfo: Review["timeline"];
+  fps: number;
   duration: number;
   comments: Comment[];
   time: TimeStore;
@@ -187,7 +188,7 @@ export function Timeline(p: TimelineProps) {
           {p.waveform && <WaveformLane wave={p.waveform} duration={duration} pps={pps} view={view} timeAt={timeAt} onSeek={p.onSeek} />}
           {indexed.map((idx) => (
             <TrackLane
-              key={idx.track.id} idx={idx} pps={pps} t0={t0} t1={t1} entity={p.entity}
+              key={idx.track.id} idx={idx} pps={pps} t0={t0} t1={t1} fps={p.fps} entity={p.entity}
               timeAt={timeAt} onSeek={p.onSeek} onPick={p.onPickEntity}
             />
           ))}
@@ -377,13 +378,13 @@ function WaveformLane({ wave, duration, pps, view, timeAt, onSeek }: {
 const hueOf = (s: string) => [...s].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7);
 
 interface TrackLaneProps {
-  idx: IndexedTrack; pps: number; t0: number; t1: number; entity: EntityRef | null;
+  idx: IndexedTrack; pps: number; t0: number; t1: number; fps: number; entity: EntityRef | null;
   timeAt: (clientX: number) => number;
   onSeek: (t: number) => void;
   onPick: (trackId: string, item: TimelineItem) => void;
 }
 
-const TrackLane = memo(function TrackLane({ idx, pps, t0, t1, entity, timeAt, onSeek, onPick }: TrackLaneProps) {
+const TrackLane = memo(function TrackLane({ idx, pps, t0, t1, fps, entity, timeAt, onSeek, onPick }: TrackLaneProps) {
   const { track } = idx;
   const items = visibleItems(idx, t0, t1);
   const isWords = track.id === "words";
@@ -410,7 +411,7 @@ const TrackLane = memo(function TrackLane({ idx, pps, t0, t1, entity, timeAt, on
       <div className="lane-track" style={{ left: GUTTER }} onClick={(e) => onSeek(timeAt(e.clientX))}>
         {items.map((it) => {
           const selected = entity?.track === track.id && entity.id === it.id;
-          const tip = `${it.label ?? it.id} · ${formatClock(it.start, 2)}${itemEnd(it) > it.start ? `–${formatClock(itemEnd(it), 2)}` : ""}`;
+          const tip = `${it.label ?? it.id} · ${formatSpan(it.start, itemEnd(it), fps)}`;
           if (track.kind === "markers") {
             const speakerChange = it.meta?.speakerChange === true;
             return (
