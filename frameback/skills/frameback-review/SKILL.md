@@ -9,7 +9,7 @@ Frameback is a local review UI. The human clicks on frames, regions, ranges and 
 each comment lands on disk immediately (`<video dir>/review/<video stem>/`). You prepare changes **while they keep
 reviewing**, then render **once** when they press **Process review**.
 
-Full command and event reference: `reference.md` (same folder). The essentials of the protocol are in `reference.md`; the full spec is `docs/PROTOCOL.md` in the Frameback repo (https://github.com/OWNER/frameback/blob/main/docs/PROTOCOL.md).
+Full command and event reference: `reference.md` (same folder). The essentials of the protocol are in `reference.md`; the full spec is `docs/PROTOCOL.md` in the Frameback repo (https://github.com/guillebecerrao/frameback/blob/main/docs/PROTOCOL.md).
 
 ## If Frameback is not installed
 

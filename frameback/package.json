@@ -4,6 +4,14 @@
   "description": "Local review tool for agentic video editing: anchor comments to frames, regions, ranges and timeline entities; your AI editing agent picks them up live.",
   "license": "MIT",
   "author": "Guillermo Becerra (GBO)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/guillebecerrao/frameback.git"
+  },
+  "homepage": "https://github.com/guillebecerrao/frameback#readme",
+  "bugs": {
+    "url": "https://github.com/guillebecerrao/frameback/issues"
+  },
   "type": "module",
   "bin": {
     "frameback": "dist/cli/index.js"

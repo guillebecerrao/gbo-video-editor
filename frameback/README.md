@@ -7,8 +7,7 @@ and write what you want changed. Your agent sees it the moment you send it, prep
 reviewing, and renders the next version once. 100% local, open source, no accounts.
 
 Created by **Guillermo Becerra (GBO)** as a companion to his agentic editing workflow.
-<!-- OWNER: replace with the public GitHub user/org before publishing -->
-[Source](https://github.com/OWNER/frameback) · [Issues](https://github.com/OWNER/frameback/issues) · [Security](SECURITY.md)
+[Source](https://github.com/guillebecerrao/frameback) · [Issues](https://github.com/guillebecerrao/frameback/issues) · [Security](SECURITY.md)
 
 ## The problem
 
@@ -51,7 +50,7 @@ Frameback is not published on npm yet, so install it from a clone. This puts a `
 which is what the agent skill calls from inside your video project:
 
 ```sh
-git clone https://github.com/OWNER/frameback.git
+git clone https://github.com/guillebecerrao/frameback.git
 cd frameback
 npm install && npm run build && npm link     # `frameback --version` should now work anywhere
 ```
