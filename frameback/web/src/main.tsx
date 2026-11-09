@@ -1,3 +1,10 @@
-// Placeholder (owned by lane L2).
 import { createRoot } from "react-dom/client";
-createRoot(document.getElementById("root")!).render(<div>Frameback</div>);
+import { App } from "./App";
+import { ToastProvider } from "./hooks/useToasts";
+import "./styles.css";
+
+createRoot(document.getElementById("root")!).render(
+  <ToastProvider>
+    <App />
+  </ToastProvider>,
+);
