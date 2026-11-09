@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { TimelineTrack } from "@core/schema";
-import { indexTrack, packRows, tickStep, visibleItems, visibleWindow } from "./virtual";
+import { indexTrack, mergeRuns, packRows, tickStep, visibleItems, visibleWindow } from "./virtual";
 
 const track = (items: [string, number, number | null][]): TimelineTrack => ({
   id: "t", label: "T", kind: "segments",
@@ -49,5 +49,12 @@ describe("packRows", () => {
     const { rows, count } = packRows([{ start: 0, end: 5 }, { start: 1, end: 3 }, { start: 4, end: 6 }, { start: 5, end: 7 }]);
     expect(rows).toEqual([0, 1, 1, 0]);
     expect(count).toBe(2);
+  });
+});
+
+describe("mergeRuns", () => {
+  it("merges items closer than the gap", () => {
+    const items = [{ id: "a", type: "w", start: 0, end: 1 }, { id: "b", type: "w", start: 1.05, end: 2 }, { id: "c", type: "w", start: 5, end: 6 }];
+    expect(mergeRuns(items as never, 0.1)).toEqual([{ start: 0, end: 2 }, { start: 5, end: 6 }]);
   });
 });

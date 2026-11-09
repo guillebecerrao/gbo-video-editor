@@ -34,7 +34,7 @@ export function TopBar({ bundle, review, comments, live, onProcess, onHelp }: To
       <span className={`state state-${review.state}`}>{STATE_LABEL[review.state]}</span>
       <span className="round" title="Review round">Round {review.round}</span>
       <div className="counts" aria-label="Comment counts">
-        <span title="All comments"><b>{counts.all}</b> comments</span>
+        <span title="All comments"><b>{counts.all}</b> {counts.all === 1 ? "comment" : "comments"}</span>
         <span title="Waiting on the agent" className={counts.needs_action ? "c-action" : ""}><b>{counts.needs_action}</b> open</span>
         <span title="Prepared by the agent" className={counts.prepared ? "c-prepared" : ""}><b>{counts.prepared}</b> prepared</span>
         <span title="Applied in a render" className={counts.applied ? "c-applied" : ""}><b>{counts.applied}</b> applied</span>
