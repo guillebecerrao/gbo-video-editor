@@ -5,7 +5,7 @@ tipo: chore
 via: apuesta
 acepta: "Guillermo"
 padre: EP-001
-estado: en-curso
+estado: en-revision
 creado: 2026-11-09
 actualizado: 2026-11-09
 valor: {estrategico: null, urgencia: null, habilita: null}
@@ -24,6 +24,7 @@ resultado: {senal: null, revisar: null, observado: null, experimento: null}   # 
 historial:
   - {estado: aprobado, fecha: 2026-11-09T01:38}
   - {estado: en-curso, fecha: 2026-11-09T07:58}
+  - {estado: en-revision, fecha: 2026-11-09T08:23}
 ---
 
 ## Problema / intención
