@@ -1,0 +1,106 @@
+---
+title: "P60 — Arranque rápido"
+subtitle: "De cero a primer ciclo, con ejemplos explícitos"
+author: Guille Becerra O
+created: 2026-07-14
+version: 1.4
+status: active
+audience: nuevo usuario de P60 (PM · Designer · Tech Lead · solo-builder)
+language: es
+---
+
+# P60 — Arranque rápido
+
+> Para capacitar o demostrar el framework: qué escribir, en qué orden, y qué esperar de vuelta. El método completo está en `P60-Framework-Guide.md` (30 min); esto es la versión "manos en la máquina" (10 min).
+
+## 0. Prerequisitos
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/guillebecerrao/p60/main/install.sh | bash   # una vez por computador
+p60 doctor                  # git, python3, Claude Code
+```
+
+## 1. Instanciar el producto (2 minutos)
+
+```bash
+mkdir mi-producto && cd mi-producto                    # o una carpeta que ya tengas (con o sin git)
+p60 init --escala pb --lang es                          # escala: pb|triada|squad · idioma: es|en|pt (pt-BR)
+claude                                                  # ábrelo siempre desde esta carpeta (la raíz)
+```
+
+`init` muestra primero un **plan** (qué crea, qué fusiona, qué ya existe) y no reemplaza nada tuyo sin preguntar. Con `--dry-run` solo muestra el plan. Si la carpeta no tenía git, lo inicializa con un commit; si ya tenía, deja los cambios para que los revises. También puedes instalarlo dentro del repo de código de un proyecto chico (una landing, por ejemplo): `init` te avisa y sugiere un repo separado, pero continúa, porque todo queda en `p60/` sin mezclarse con el código.
+
+El contenido del repo se genera en el idioma elegido; los nombres de carpetas son estructura canónica del framework y no cambian entre idiomas.
+
+Esto convierte la carpeta en el **context repo**. Todo queda dentro de `p60/`: estructura completa, OST semilla, sistema de evidencia, bitácoras y una copia del framework en `p60/_framework/` (no se edita a mano). Afuera solo quedan `.claude/` (agentes, skills y guardarraíles que Claude Code necesita en la raíz) y un bloque en el `CLAUDE.md` de la raíz. El repo es autocontenido: quien lo clone lo tiene funcionando sin instalar nada más que Claude Code.
+
+**Actualizar P60 en un producto** (cuando sale una versión nueva del framework):
+
+```bash
+p60 update --dry-run    # muestra qué cambiaría, sin escribir
+p60 update              # aplica: actualiza lo que no tocaste, pregunta por lo que editaste, nunca borra sin confirmar
+p60 doctor              # versión instalada, archivos editados y estado de los guardarraíles
+```
+
+**Comandos útiles del CLI en cualquier momento:**
+
+```bash
+p60 skills              # qué sabe hacer el agente (y cuándo usar cada skill)
+p60 agents              # los perfiles expertos y cuándo se activan
+p60 doctor              # prerequisitos, versión y guardarraíles
+```
+
+## 2. Etapa 0 — Fundación (una sesión de ~30–45 min)
+
+Dile al agente:
+
+> **"Corre la fundación de contexto"** (skill `fundacion-etapa-0`)
+
+Te entrevistará por bloques — negocio, mercado/usuario, equipo, dominio — y poblará `contexto/` validando cada bloque contigo. Si tienes material previo (entrevistas, métricas, informes), díselo: irá a `_inbox/` y quedará catalogado.
+
+## 3. El ciclo — qué decir en cada sub-proceso
+
+| Sub-proceso | Dile al agente… | Skill que se activa | Qué obtienes |
+|-------------|-----------------|--------------------|--------------| 
+| **Shape** | "Creemos el OST" / "prioricemos oportunidades" | `ost-facilitator` | Árbol outcome→oportunidades→soluciones; oportunidad target elegida **por ti** |
+| | "Diseña una guía de entrevista para este nodo" | `brief-entrevista` | Guía de sesión ejecutable |
+| | "Procesa esta transcripción" | `interview-snapshot` | Snapshot de 1 página listo para el OST |
+| **Ideate** | "Generemos ideas para la oportunidad target" | `ideacion-estructurada` | ≥8 ideas → matriz → ~3 candidatas (las eliges tú) |
+| **Validate** | "Mapea los supuestos de esta candidata" | `assumption-testing` | Supuestos rankeados + test más barato con umbral pre-registrado |
+| | "Diseña el test no moderado" | `brief-test-no-moderado` | Brief listo para Lyssna/Maze |
+| **Handoff** | "Madura el brief seleccionado a PRD" | `redactar-prd` | PRD Maestro + PRD de feature (con prototipo funcional, recomendado) + Iteration PRDs dev-ready (congelados en `activas/`) |
+| | "¿Cómo vamos a medir esta feature?" | `disenar-experimento` | Experimento con propósito, umbral pre-registrado e instrumentación en el Iteration PRD (recomendado, no obligatorio) |
+| **Build** | *(en el repo de código)* "Sigue con el backlog" | `orquestar-pb` (global) o tu equipo | `backlog/`; producto desplegado y verificado (ADR-001, ADR-002) |
+| **Experimentación** | "Lancemos el experimento" | `disenar-experimento` | Instrumentación verificada en producción; experimento `running` con fecha de corte |
+| | "Llegó el corte: decidamos" | `decision-ship` | Lectura honesta + recomendación; **decides tú**; repo propagado |
+| **Transversal** | "Deja esto en el inbox" / "¿qué evidencia tenemos de X?" | `bibliotecario-evidencia` | Ficha `EV-NNN` + búsqueda índice→ficha→original |
+| | "Cerremos el ciclo de Shape" | `cierre-de-ciclo` | Retro + archivado + bitácora |
+| | "Genera el HTML del OST para presentarlo" | `generar-presentacion-html` | HTML ejecutivo para stakeholders |
+
+## 4. Las tres decisiones que el agente NUNCA toma
+
+El agente prepara, recomienda y propaga; **tú decides**: (1) el outcome y la apuesta (qué oportunidad, qué candidatas, cuánto apetito); (2) si una síntesis de IA entra al OST o a un PRD (tú la validas antes); (3) ship / no-ship / iterar.
+
+## 5. Demo de 10 minutos (para mostrar el framework)
+
+1. `p60 init demo-cafe` → mostrar el plan, la carpeta `p60/` y el `CLAUDE.md` (30 s).
+2. "Corre la fundación" → responder 3–4 preguntas del bloque negocio → mostrar `p60/contexto/negocio/` poblado (3 min).
+3. Pegar una entrevista falsa en el chat → "procesa esta transcripción y déjala fichada" → mostrar snapshot + ficha `EV-001` + índice (3 min).
+4. "Creemos el OST con esto" → mostrar el árbol con evidencia citada `[EV-001]` (2 min).
+5. Intentar editar un archivo en `activas/` → **el guardarraíl pide confirmación humana solo** (30 s — siempre impresiona).
+6. Cerrar con `p60 skills`: "todo esto es markdown versionado en git — sin Jira, sin Notion" (1 min).
+
+## 6. Dónde seguir
+
+- Método completo: `p60/_framework/docs/P60-Framework-Guide.md` (o su `.html`).
+- Principios y reglas: `p60/_framework/memory/constitution.md`.
+- Decisiones estructurales: `p60/_framework/docs/adr/`.
+
+## Changelog
+| Version | Date | Author | Description |
+|---------|------|--------|-------------|
+| 1.0 | 2026-07-14 | Claude Fable 5 (Product-Builder) | Creación — guía de onboarding/capacitación con ejemplos explícitos y demo guiada. |
+| 1.1 | 2026-10-19 | Claude Opus 5.5 (Product-Builder) | `p60 init` sobre la carpeta actual (nueva o existente), todo dentro de `p60/`, plan previo y `--dry-run`. |
+| 1.2 | 2026-10-19 | Claude Opus 5.5 (Product-Builder) | Cómo actualizar (`p60 update`, `doctor`) y uso dentro de un codebase. |
+| 1.3 | 2026-10-19 | Claude Opus 5.5 (Product-Builder) | Prerequisitos con el instalador de un comando (`install.sh`); detalle en `docs/instalacion.md`. |
+| 1.4 | 2026-10-19 | Claude Opus 5.5 (Product-Builder) | Comandos útiles con `p60` global (antes rutas `P60/tools/p60`). |

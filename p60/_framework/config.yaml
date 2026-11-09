@@ -1,0 +1,9 @@
+# Generado por p60 init. Lo actualiza p60 update.
+producto: gbo-video-editor
+escala: pb
+lang: es
+tools: [claude]
+framework_version: 2.4.1
+framework_source: https://github.com/guillebecerrao/p60
+installed_at: 2026-11-09
+updated_at: 2026-11-09
