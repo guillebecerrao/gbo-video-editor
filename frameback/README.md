@@ -160,6 +160,9 @@ Frameback is built by **Guillermo Becerra (GBO)**, **@guillebecerrao** everywher
 
 Contact: [hello@guillebecerrao.cl](mailto:hello@guillebecerrao.cl)
 
+Frameback was built overnight by a team of AI agents with the P60 product framework. The whole build log (backlog,
+decisions, reviews, lessons learned) is public: [guillebecerrao/gbo-video-editor](https://github.com/guillebecerrao/gbo-video-editor).
+
 ## License
 
 [MIT](LICENSE). Contributions welcome: see [`CONTRIBUTING.md`](CONTRIBUTING.md).
