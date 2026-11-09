@@ -3,7 +3,7 @@ import { CATEGORIES, PRIORITIES, type Category, type Comment, type CommentPatch,
 import { snapshotUrl } from "../api/client";
 import {
   AGENT_LABEL, CATEGORY_ICON, FILTERS, PRIORITY_LABEL, canEdit, filterCounts, hasUnansweredQuestion, isAnsweredWaiting, isCarriedOpen, isStale, matchesFilter,
-  needsVerification, sortByTime, type FilterId,
+  needsVerification, sortByTime, partitionResolved, firstLine, isResolved, type FilterId,
 } from "../lib/comments";
 import { formatSpan } from "../lib/time";
 import { CheckIcon, EditIcon, RegionIcon, TrashIcon } from "./icons";
@@ -16,6 +16,8 @@ interface PanelProps {
   state: ReviewState;
   focusId: string | null;
   composer: ReactNode;
+  hideResolvedOnTimeline: boolean;
+  onHideResolvedOnTimeline: (v: boolean) => void;
   /** id of the draft being composed, or null */
   draftId: number | null;
   onFocus: (c: Comment) => void;
@@ -28,7 +30,10 @@ interface PanelProps {
 export function CommentsPanel(p: PanelProps) {
   const [filter, setFilter] = useState<FilterId>("all");
   const counts = filterCounts(p.comments);
-  const shown = sortByTime(p.comments.filter((c) => matchesFilter(c, filter)));
+  const { active: shown, resolved } = partitionResolved(sortByTime(p.comments.filter((c) => matchesFilter(c, filter))));
+  const [groupOpen, setGroupOpen] = useStoredFlag(`frameback.resolvedOpen.${p.rid}`);
+  const [openRows, setOpenRows] = useState<Set<string>>(() => new Set());
+  const focusedResolved = p.comments.some((c) => c.id === p.focusId && isResolved(c));
   const listRef = useRef<HTMLDivElement>(null);
 
   // A new draft always starts with its anchor chips in view.
@@ -36,10 +41,20 @@ export function CommentsPanel(p: PanelProps) {
     if (p.draftId != null) listRef.current?.scrollTo({ top: 0 });
   }, [p.draftId]);
 
+  // A resolved comment picked elsewhere (timeline) must be visible.
+  useEffect(() => {
+    if (!p.focusId || !focusedResolved) return;
+    setGroupOpen(true);
+    setOpenRows((s) => (s.has(p.focusId!) ? s : new Set(s).add(p.focusId!)));
+  }, [p.focusId, focusedResolved]);
+
   useEffect(() => {
     if (!p.focusId) return;
-    listRef.current?.querySelector(`[data-comment="${p.focusId}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    const el = listRef.current?.querySelector(`[data-comment="${p.focusId}"]`);
+    if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    else if (focusedResolved) requestAnimationFrame(() => listRef.current?.querySelector(`[data-comment="${p.focusId}"]`)?.scrollIntoView({ block: "nearest", behavior: "smooth" }));
   }, [p.focusId]);
+
 
   return (
     <aside className="panel" aria-label="Comments">
@@ -52,6 +67,12 @@ export function CommentsPanel(p: PanelProps) {
             </button>
           ))}
         </div>
+        {resolved.length > 0 && (
+          <label className="hide-resolved">
+            <input type="checkbox" checked={p.hideResolvedOnTimeline} onChange={(e) => p.onHideResolvedOnTimeline(e.target.checked)} />
+            Hide resolved on timeline
+          </label>
+        )}
       </header>
       <div className="panel-body" ref={listRef}>
         {p.composer}
@@ -60,9 +81,51 @@ export function CommentsPanel(p: PanelProps) {
         {shown.map((c) => (
           <CommentCard key={c.id} comment={c} {...p} focused={c.id === p.focusId} />
         ))}
+        {resolved.length > 0 && (
+          <section className="resolved-group" aria-label="Resolved comments">
+            <button className="resolved-head" aria-expanded={groupOpen} onClick={() => setGroupOpen(!groupOpen)}>
+              <span className={`chev${groupOpen ? " open" : ""}`} aria-hidden>▸</span>
+              Resolved <span className="count">{resolved.length}</span>
+            </button>
+            {groupOpen && resolved.map((c) => {
+              const open = openRows.has(c.id);
+              if (open) {
+                return (
+                  <div key={c.id} className="resolved-open">
+                    <CommentCard comment={c} {...p} focused={c.id === p.focusId} />
+                    <button className="link small" onClick={() => setOpenRows((s) => { const n = new Set(s); n.delete(c.id); return n; })}>Collapse</button>
+                  </div>
+                );
+              }
+              return (
+                <button
+                  key={c.id} data-comment={c.id} className={`resolved-row${c.id === p.focusId ? " focused" : ""}`}
+                  onClick={() => { p.onFocus(c); setOpenRows((s) => new Set(s).add(c.id)); }}
+                >
+                  <span className="mono rr-num">#{c.id.replace(/^c-0*/, "")}</span>
+                  <span className="mono rr-tc">{formatSpan(c.anchor.time.start, c.anchor.time.end, p.fps)}</span>
+                  <span className="rr-text">{firstLine(c.body)}</span>
+                  <CheckIcon />
+                </button>
+              );
+            })}
+          </section>
+        )}
       </div>
     </aside>
   );
+}
+
+/** Boolean persisted per key in localStorage; storage failures just mean it is not remembered. */
+function useStoredFlag(key: string): [boolean, (v: boolean) => void] {
+  const read = () => { try { return localStorage.getItem(key) === "1"; } catch { return false; } };
+  const [v, setV] = useState(read);
+  useEffect(() => { setV(read()); }, [key]);
+  const set = (next: boolean) => {
+    setV(next);
+    try { localStorage.setItem(key, next ? "1" : "0"); } catch { /* ignore */ }
+  };
+  return [v, set];
 }
 
 function EmptyState() {

@@ -12,7 +12,7 @@ import { useReview, type ReviewApi } from "./hooks/useReview";
 import { useToasts } from "./hooks/useToasts";
 import { useVideo } from "./hooks/useVideo";
 import { buildAnchor, entityRef, type Draft, type Marks } from "./lib/anchor";
-import { canEdit } from "./lib/comments";
+import { canEdit, isResolved } from "./lib/comments";
 import { captureSnapshot } from "./lib/snapshot";
 import { FALLBACK_FPS, frameCenter, frameIndex } from "./lib/time";
 
@@ -116,6 +116,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
   const [marks, setMarks] = useState<Marks>(NO_MARKS);
   const [regionTool, setRegionTool] = useState(false);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [hideResolved, setHideResolved] = useState(false);
   const [waveform, setWaveform] = useState<Waveform | null>(null);
   const [showHelp, setShowHelp] = useState(false);
   const [showProcess, setShowProcess] = useState(false);
@@ -380,6 +381,8 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
           state={review.state}
           focusId={focusId}
           composer={composer}
+          hideResolvedOnTimeline={hideResolved}
+          onHideResolvedOnTimeline={setHideResolved}
           draftId={editable && draft ? draft.id : null}
           onFocus={focusComment}
           onPatch={patchComment}
@@ -393,7 +396,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
         timelineInfo={review.timeline}
         fps={fps}
         duration={duration}
-        comments={comments}
+        comments={hideResolved ? comments.filter((c) => !isResolved(c) || c.id === focusId) : comments}
         time={video.time}
         selection={selection}
         entity={draft?.entity ?? null}

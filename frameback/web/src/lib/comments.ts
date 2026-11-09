@@ -44,6 +44,24 @@ export function isCarriedOpen(c: Comment): boolean {
   return c.carriedFrom != null && c.human.status === "open" && !needsVerification(c);
 }
 
+/** The human is done with it: verified or resolved by hand. */
+export function isResolved(c: Comment): boolean {
+  return c.human.status === "verified" || c.human.status === "resolved_by_human";
+}
+
+/** Splits comments into the active list and the resolved group (each in the given order). */
+export function partitionResolved(comments: Comment[]): { active: Comment[]; resolved: Comment[] } {
+  const active: Comment[] = [];
+  const resolved: Comment[] = [];
+  for (const c of comments) (isResolved(c) ? resolved : active).push(c);
+  return { active, resolved };
+}
+
+/** First non-empty line of a comment body, for compact rows. */
+export function firstLine(text: string): string {
+  return text.split(/\r?\n/).find((l) => l.trim())?.trim() ?? "";
+}
+
 export function isAlive(c: Comment): boolean {
   return c.human.status !== "deleted";
 }
