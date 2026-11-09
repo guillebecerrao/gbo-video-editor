@@ -98,6 +98,8 @@ async function main() {
   const health = await waitFor(() => fetch(`${base}/api/health`).then((r) => r.json()), "server health");
   check("server answers /api/health", health.app === "frameback");
   const rid = "final_smoke_v1";
+  // the server listens before it finishes registering the video (probe + timeline), so wait for the review
+  await waitFor(() => fetch(`${base}/api/reviews`).then((r) => r.json()).then((list) => JSON.stringify(list).includes(`"${rid}"`)), "review registered");
 
   const events = [];
   const watcher = spawn(process.execPath, [cli, "watch", v1, "--json", "--exit-on", "review.submitted"], { stdio: ["ignore", "pipe", "inherit"] });
