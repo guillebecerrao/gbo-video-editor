@@ -1,0 +1,11 @@
+{
+  "words": [
+    { "text": "Hello", "start": 1.2, "end": 1.5, "type": "word", "speaker_id": "speaker_0" },
+    { "text": " ", "start": 1.5, "end": 1.6, "type": "spacing", "speaker_id": "speaker_0" },
+    { "text": "world.", "start": 1.6, "end": 2.0, "type": "word", "speaker_id": "speaker_0" },
+    { "text": "(laughter)", "start": 2.0, "end": 2.2, "type": "audio_event" },
+    { "text": "again", "start": 2.2, "end": 2.6, "type": "word", "speaker_id": "speaker_0" },
+    { "text": "now", "start": 3.0, "end": 3.4, "type": "word", "speaker_id": "speaker_0" },
+    { "text": "later", "start": 10.5, "end": 10.9, "type": "word", "speaker_id": "speaker_0" }
+  ]
+}
