@@ -391,6 +391,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
       <Timeline
         timeline={bundle.timeline}
         timelineInfo={review.timeline}
+        fps={fps}
         duration={duration}
         comments={comments}
         time={video.time}
