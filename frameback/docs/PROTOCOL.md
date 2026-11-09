@@ -16,7 +16,7 @@ For a reviewed video `<dir>/<stem>.<ext>` the review lives in:
   .lock/               # transient lock directory (mkdir-based); ignore
 ```
 
-Example (gbo-style project): `edit/final_youtube_v2.mp4` → `edit/review/final_youtube_v2/`.
+Example: `edit/final_v2.mp4` → `edit/review/final_v2/`.
 
 All writes go through the core store: atomic write (tmp file + rename) under the lock; events appended under the
 lock with `seq = last seq + 1` (starting at 1).
@@ -26,13 +26,13 @@ lock with `seq = last seq + 1` (starting at 1).
 ```jsonc
 {
   "schemaVersion": 1,
-  "id": "final_youtube_v2",              // = stem
-  "video": { "file": "../../final_youtube_v2.mp4",  // relative to the review dir
+  "id": "final_v2",              // = stem
+  "video": { "file": "../../final_v2.mp4",  // relative to the review dir
              "duration": 2412.48, "fps": 24, "width": 1920, "height": 1080 },   // filled when known
-  "timeline": { "file": "../../final_youtube_v2.timeline.json" } ,              // optional; or null
+  "timeline": { "file": "../../final_v2.timeline.json" } ,              // optional; or null
   "state": "reviewing",                   // reviewing | submitted | processing | delivered | closed
   "round": 1,                             // incremented when a submitted review is reopened
-  "previous": "final_youtube_v1",         // stem of the version this one was carried from, or null
+  "previous": "final_v1",         // stem of the version this one was carried from, or null
   "nextVideo": null,                      // relative path of the next version once delivered
   "createdAt": "2026-11-09T03:00:00.000Z",
   "submittedAt": null,
@@ -60,7 +60,7 @@ lock with `seq = last seq + 1` (starting at 1).
       "track": "cuts", "id": "range:3", "type": "range", "label": "HOOK · cam_a 83.20–90.10"
     },
     "source": { "name": "cam_a", "time": 83.2 }, // optional; resolved from the timeline when available
-    "transcript": "lo que se dice en ese tramo"  // optional; words spoken in the anchored span
+    "transcript": "what is said in that span"  // optional; words spoken in the anchored span
   },
   "category": "framing",   // cut | transition | framing | color | motion | audio | caption | broll | element | pacing | other
   "action": "change",      // remove | change | add | move | keep | question   (optional)
@@ -75,7 +75,7 @@ lock with `seq = last seq + 1` (starting at 1).
     "status": "prepared",  // pending | acknowledged | in_progress | prepared | applied | needs_info | declined
     "plan": "Shift crop x by +8% on range:3 in staging EDL",
     "reply": "Done in staging; will be in v3.",
-    "appliedIn": null,     // stem of the version where it was applied, e.g. "final_youtube_v3"
+    "appliedIn": null,     // stem of the version where it was applied, e.g. "final_v3"
     "seenRevision": 1,     // human.revision the agent acted on; < human.revision => STALE (human edited after)
     "updatedAt": "…"
   },
@@ -83,7 +83,7 @@ lock with `seq = last seq + 1` (starting at 1).
   // ---- shared ----
   "thread": [ { "author": "agent", "at": "…", "text": "Do you prefer a cut or a zoom?" },
               { "author": "human", "at": "…", "text": "A cut." } ],
-  "carriedFrom": null       // { "review": "final_youtube_v1", "id": "c-0003" } when carried over
+  "carriedFrom": null       // { "review": "final_v1", "id": "c-0003" } when carried over
 }
 ```
 
@@ -117,10 +117,10 @@ Every line: `{ "seq": 12, "at": "ISO", "type": "<type>", "review": "<stem>", "co
 frameback watch <video|reviewDir> [--since <seq>] [--exit-on review.submitted] [--json|--text]
 frameback list  <video|reviewDir> [--agent-status pending,needs_info] [--json]
 frameback show  <reviewDir> <commentId> [--json]
-frameback update <reviewDir> <commentId> --status <agentStatus> [--plan …] [--reply …] [--applied-in <stem>]
+frameback update <reviewDir> <commentId> --status <agentStatus> [--plan …] [--reply …] [--applied-in <stem>] [--seen-revision <n>] [--json]
 frameback reply <reviewDir> <commentId> "<message>"
 frameback review <reviewDir> --state <processing|delivered|closed> [--next-video <path>]
-frameback carry <fromVideo> <toVideo> [--map <json: [[oldStart,oldEnd,newStart],…]>]
+frameback carry <fromVideo> <toVideo>
 frameback export <reviewDir> [--format md|json]       # FEEDBACK.md-style summary for the agent
 ```
 
@@ -141,7 +141,7 @@ Lets any editing tool show its structure in Frameback. Times are output-time sec
 ```jsonc
 {
   "schemaVersion": 1,
-  "video": "final_youtube_v2.mp4",
+  "video": "final_v2.mp4",
   "duration": 2412.48,
   "tracks": [
     { "id": "cuts",    "label": "Cuts",    "kind": "segments",
@@ -156,7 +156,7 @@ Lets any editing tool show its structure in Frameback. Times are output-time sec
 }
 ```
 
-If no sidecar exists, Frameback looks for `edl.json` next to the video and converts it (video-use / gbo-style shape:
+If no sidecar exists, Frameback looks for `edl.json` next to the video and converts it (the `video-use` `edl.json` shape:
 `sources`, `ranges[{source,start,end,beat?,punch?}]`, `broll[{source,src_start,duration,start_in_output}]`, word
 transcripts in `transcripts/<source>.json` with `words[{type:"word",text,start,end}]`). Range output times are the
 cumulative sum of range durations in order.

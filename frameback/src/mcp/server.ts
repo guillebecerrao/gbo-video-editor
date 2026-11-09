@@ -1,5 +1,5 @@
 /**
- * Frameback MCP stdio server (lane L3). `frameback mcp` calls startMcpServer().
+ * Frameback MCP stdio server. `frameback mcp` calls startMcpServer().
  *
  * It exposes the review protocol (docs/PROTOCOL.md) as MCP tools. Every write goes through `src/core/store.ts`,
  * so the CLI, the web UI and this server stay consistent. stdout is reserved for the MCP protocol: never log there.
