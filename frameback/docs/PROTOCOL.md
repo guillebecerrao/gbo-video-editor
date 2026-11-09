@@ -175,6 +175,10 @@ reviewing --(human: Process review)--> submitted --(agent)--> processing --(agen
 ```
 - While not `reviewing`, the UI locks the composer and human edits (store rejects them); threads and human
   verification statuses stay open; agents may write in any state.
+- The human can also reopen a `delivered` or `closed` review while no newer version exists (no `nextVideo`, or its
+  file is missing): it is still the latest cut. Once the next version exists, feedback belongs there.
+- Agents set `delivered` / `closed` only on the review of the version they **replaced**; the review of the version
+  just opened stays `reviewing`.
 
 **Write order and locking**
 - All writers use `src/core/store.ts`. Lock = `mkdir .lock` with an `owner` file `{pid, at}`; a lock older than 10 s

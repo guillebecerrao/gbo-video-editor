@@ -137,18 +137,20 @@ function Chip({ label, children, onClear }: { label: string; children: React.Rea
   );
 }
 
-export function LockedComposer({ state, onReopen }: { state: ReviewState; onReopen: () => void }) {
+export function LockedComposer({ state, canReopen, onReopen }: { state: ReviewState; canReopen: boolean; onReopen: () => void }) {
   const text: Record<string, string> = {
     submitted: "This review was sent to the agent. New comments are locked until you add more feedback.",
     processing: "The agent is processing this review. New comments are locked until you add more feedback.",
-    delivered: "A new version was delivered. Open it to keep reviewing; this version's comments are read-only.",
-    closed: "This review is closed.",
+    delivered: canReopen
+      ? "This review was marked delivered, but there is no newer version yet. Reopen it to keep commenting here."
+      : "A new version was delivered. Open it to keep reviewing; this version's comments are read-only.",
+    closed: canReopen ? "This review is closed. Reopen it to keep commenting on this version." : "This review is closed.",
   };
   return (
     <div className="locked">
       <LockIcon />
       <p>{text[state] ?? "Comments are locked."}</p>
-      {(state === "submitted" || state === "processing") && <button className="btn" onClick={onReopen}>Add more feedback</button>}
+      {canReopen && <button className="btn" onClick={onReopen}>{state === "submitted" || state === "processing" ? "Add more feedback" : "Reopen review"}</button>}
     </div>
   );
 }

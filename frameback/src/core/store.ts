@@ -394,8 +394,15 @@ export async function reopenReview(reviewDir: string): Promise<Review> {
   return withLock(reviewDir, async () => {
     const r = Review.parse(await readJson(p.review(reviewDir)));
     if (r.state === "reviewing") return r;
-    if (r.state !== "submitted" && r.state !== "processing") {
-      throw new StoreError("conflict", `review is '${r.state}': only a submitted or processing review can be reopened`);
+    if (r.state === "delivered" || r.state === "closed") {
+      // A delivered/closed review stays read-only once a newer version exists (feedback belongs there).
+      // Without one, it is still the latest cut, so the reviewer can reopen it to keep commenting.
+      const next = r.nextVideo ? await fs.stat(fromReview(reviewDir, r.nextVideo)).catch(() => null) : null;
+      if (next?.isFile()) {
+        throw new StoreError("conflict", `review is '${r.state}' and a newer version exists (${r.nextVideo}): review that one instead`);
+      }
+    } else if (r.state !== "submitted" && r.state !== "processing") {
+      throw new StoreError("conflict", `review is '${r.state}': it cannot be reopened`);
     }
     const next: Review = { ...r, state: "reviewing", round: r.round + 1, updatedAt: now() };
     await atomicWriteJson(p.review(reviewDir), next);

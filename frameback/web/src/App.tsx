@@ -209,7 +209,8 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
   const onPickEntity = (trackId: string, item: TimelineItem) => {
     const track = bundle.timeline?.tracks.find((t) => t.id === trackId);
     seek(item.start);
-    if (!track || !editable) return;
+    if (!track) return;
+    if (!editable) { lockedHint(); return; }
     startComposing({ start: item.start, end: item.end != null && item.end > item.start ? item.end : null, entity: entityRef(track, item) });
   };
 
@@ -282,6 +283,10 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
       setShowProcess(false);
     }
   };
+  // delivered/closed stay read-only only once a newer version exists; otherwise this is still the latest cut
+  const canReopen = review.state !== "reviewing" && !((review.state === "delivered" || review.state === "closed") && bundle.next);
+  const lockedHint = () =>
+    toasts.info(canReopen ? "Comments are locked for this review. Use “Reopen review” in the comments panel to comment again." : "Comments are locked for this review.");
   const reopen = async () => {
     const r = await guard(() => api.reopen(rid));
     if (r) store.applyReview(r);
@@ -321,7 +326,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
       case "m": return handled(video.toggleMute);
       case "Home": return handled(() => seek(0));
       case "End": return handled(() => seek(duration));
-      case "c": return handled(() => (editable ? startComposing() : toasts.info("Comments are locked for this review.")));
+      case "c": return handled(() => (editable ? startComposing() : lockedHint()));
       case "i": return handled(() => setMark("in"));
       case "o": return handled(() => setMark("out"));
       case "x": return handled(() => setMarks(NO_MARKS));
@@ -341,7 +346,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
     : marks.out != null ? { start: marks.out, end: null } : null;
 
   const composer = !editable
-    ? <LockedComposer state={review.state} onReopen={reopen} />
+    ? <LockedComposer state={review.state} canReopen={canReopen} onReopen={reopen} />
     : draft && (
       <Composer
         key={draft.id}

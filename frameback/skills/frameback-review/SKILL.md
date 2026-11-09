@@ -101,3 +101,7 @@ Other events:
 - Times are seconds in the **reviewed video** (output time). Map back to sources through the timeline/EDL
   (`frameback timeline <video> --json`) or the comment's `anchor.source` / `anchor.entity`.
 - `--state closed` only when the user says the review is finished.
+- `delivered` and `closed` go on the review of the version you **replaced**, never on the one you just opened: the new
+  version's review must stay `reviewing`, or the reviewer cannot comment on it (the UI locks it). Never use `--force`
+  on review states unless the user asks. If you locked the latest version by mistake, tell the reviewer to press
+  **Reopen review** in the comments panel.

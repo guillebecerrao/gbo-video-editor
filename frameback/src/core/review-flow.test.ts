@@ -86,7 +86,7 @@ describe("review state machine", () => {
     await expect(S.setReviewState(dir, "delivered")).rejects.toThrow(/next version/);
     await expect(S.setReviewState(dir, "delivered", { nextVideo: path.join(tmp, "nope.mp4") })).rejects.toThrow(/not found/);
     await S.setReviewState(dir, "delivered", { nextVideo: await mk("s_v2.mp4") });
-    await expect(S.reopenReview(dir)).rejects.toThrow(/only a submitted or processing/);
+    await expect(S.reopenReview(dir)).rejects.toThrow(/newer version exists/);
     await S.setReviewState(dir, "closed");
     await expect(S.setReviewState(dir, "processing")).rejects.toThrow(/cannot set/);
     await S.setReviewState(dir, "processing", { force: true });
@@ -137,5 +137,14 @@ describe("watch --exit-on", () => {
     });
     expect(ev?.type).toBe("review.submitted");
     expect(lines.map((l) => JSON.parse(l).actor)).not.toContain("agent");
+  });
+
+  it("the latest version can be reopened after an agent closed or delivered it by mistake", async () => {
+    const { dir } = await S.openReview(await mk("m_v7.mp4"));
+    await S.setReviewState(dir, "closed");
+    const r = await S.reopenReview(dir);
+    expect(r).toMatchObject({ state: "reviewing", round: 2 });
+    await S.setReviewState(dir, "delivered", { force: true });
+    expect((await S.reopenReview(dir)).state).toBe("reviewing");
   });
 });
