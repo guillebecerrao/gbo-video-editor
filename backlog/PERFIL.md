@@ -8,7 +8,7 @@ revisado: 2026-11-09
 
 ## Personas
 
-- **Responsable:** Guillermo (dueño de gbo-style). Aprueba alcance, valida y autoriza publicación.
+- **Responsable:** Guillermo (dueño de gbo-video, antes gbo-style). Aprueba alcance, valida y autoriza publicación.
 - **Otras sesiones que tocan el repo:** ninguna (sesión nocturna autónoma del orquestador + subagentes).
 - **Idioma y tono:** español para backlog/decisiones; **inglés para el código y la documentación pública** del producto (es open source).
 - **Disponibilidad:** revisa por la mañana (sesión nocturna autónoma, 2026-11-09).
@@ -73,4 +73,5 @@ revisado: 2026-11-09
 | 2026-11-09 | Planificar/revisar con Opus; implementar con subagentes Sonnet en paralelo; ronda de revisores al final | Pedido del responsable |
 | 2026-11-09 | **gbo-style debe operar sin Frameback.** La integración es opcional: se detecta (`command -v frameback` / `npx frameback --version`) y si no está, gbo-style sigue su flujo de checkpoints actual sin cambios | Pedido explícito del responsable: Frameback va on top, no es condición necesaria |
 | 2026-11-09 | Nombre del producto: **Frameback** (antes "Glosa"). Libres en npm como alternativa: pinframe, cutnote, reelback | Pedido del responsable: nombre brandeable para su marca personal |
+| 2026-11-09 | **gbo-style se reemplazó** por `gbo-video` (skill pública, github.com/guillebecerrao/gbo-video) + un perfil local privado. Lo público de Frameback y de este repo enlaza solo a gbo-video; nunca al perfil privado. Las reglas de arriba sobre gbo-style aplican ahora a gbo-video (integración opcional, sin dependencia dura) | Cambio del ecosistema informado por el responsable |
 | 2026-11-09 | El README y la LICENCIA atribuyen la autoría a Guillermo Becerra (GBO); sin otros datos personales | Marca personal + repo público |

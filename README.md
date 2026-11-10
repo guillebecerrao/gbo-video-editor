@@ -17,7 +17,8 @@ Por **Guillermo Becerra (GBO)** · [@guillebecerrao](https://github.com/guillebe
 
 Una herramienta local para dar feedback anclado (a un frame, una región, un rango, un corte o una transición) a un
 agente que edita video. El agente recibe cada comentario mientras sigues revisando, prepara los cambios en paralelo y
-renderiza la versión siguiente una sola vez. Nació como hermano de mi skill de edición agéntica.
+renderiza la versión siguiente una sola vez. Nació como compañero de
+[gbo-video](https://github.com/guillebecerrao/gbo-video), mi skill pública de edición de video agéntica.
 
 ## Cómo se construyó
 
@@ -32,7 +33,7 @@ renderiza la versión siguiente una sola vez. Nació como hermano de mi skill de
 5. **Validación humana y retrabajo.** Probé la v0.1 con videos reales; mi feedback entró como ítems nuevos
    (BL-008, BL-009) y volvió a pasar por el mismo ciclo.
 
-Resultado: 139 tests, smoke de punta a punta y CI en verde, publicado con historia limpia en su propio repo.
+Resultado: 140 tests, smoke de punta a punta y CI en verde, publicado con historia limpia en su propio repo.
 
 ## Cómo leer este repo
 
@@ -50,6 +51,10 @@ Resultado: 139 tests, smoke de punta a punta y CI en verde, publicado con histor
 
 **Sobre `frameback/`:** es la copia de desarrollo. El código canónico, el que se instala y versiona, está en
 [guillebecerrao/frameback](https://github.com/guillebecerrao/frameback); los cambios se hacen aquí y se publican allá.
+
+**Sobre `gbo-style`:** en el backlog y las revisiones aparece con ese nombre la skill de edición que integró Frameback
+durante la construcción. Hoy esa capacidad es pública como [gbo-video](https://github.com/guillebecerrao/gbo-video);
+las preferencias personales viven aparte, en un perfil local que no se publica.
 
 **Sobre los commits:** los firma `AgenticOps-GBO`, la cuenta de la máquina donde corren mis agentes.
 

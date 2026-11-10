@@ -12,14 +12,15 @@ sesion: —
 
 1. Leer la guía marcada: los `[!]` y `[~]` pasan a ítems `fix`/retrabajo del lote siguiente.
 2. Aplicar las decisiones de publicación (nombre, OWNER, links, historia limpia) — publicar solo con orden explícita.
-3. Pendientes menores conocidos (no bloquean): tarjeta respondida aún muestra la caja "Waiting for your answer"; descartar borrador usa `window.confirm` nativo; chips de filtro se parten en 2 filas a 1440 px; "Round 1" en v2 puede confundir.
+3. ~~Pendientes menores~~ resueltos en 0.1.1 (2026-11-09): la tarjeta respondida ya no muestra la caja de espera; descartar con Esc dos veces en vez de `window.confirm`; filtros en una fila con scroll lateral; "Round N" solo tras reabrir.
+4. Publicar `frameback@0.1.1` en npm (lo corre Guillermo en Terminal.app por la passkey). GIF del README pendiente de su grabación.
 
 ## Estado
 
 | Ítem | Estado | Siguiente paso |
 |---|---|---|
 | BL-002..BL-005 | en-revision (en main) | validación humana |
-| BL-006 gbo-style | en-revision (commit 90d889c en la skill) | validación humana (B1–B5) |
+| BL-006 gbo-style → gbo-video | en-revision (la integración vive ahora en gbo-video `references/frameback.md`) | validación humana (B1–B5) |
 | BL-007 revisión | en-revision | — |
 
 - **Entornos:** ninguno levantado. `cd frameback && npm run demo`.

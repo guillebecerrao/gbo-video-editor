@@ -6,7 +6,7 @@
  * timeline's cut items that reference the same source range. Pure functions, no I/O.
  *
  * Primary track: the track with id `cuts` if it has `range` items carrying `source`; otherwise the first track
- * that has such items. Both the EDL adapter and the gbo-style sidecar name it `cuts`.
+ * that has such items. Both the EDL adapter and the gbo-video sidecar name it `cuts`.
  */
 import type { Anchor, Timeline, TimelineItem, TimeSpan } from "./schema.js";
 

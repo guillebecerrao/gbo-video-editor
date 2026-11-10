@@ -2,7 +2,7 @@
 
 ## Para ti (máx. 3)
 
-- Probar: Frameback v0.1 — `backlog/revisiones/2026-11-09-frameback-v0-1.md` (demo + tu video real + gbo-style).
+- Probar: Frameback v0.1 — `backlog/revisiones/2026-11-09-frameback-v0-1.md` (demo + tu video real + gbo-video).
 - Decidir: publicación (nombre, historia limpia, usuario GitHub, links, GIF, npm) — `backlog/decisiones/DEC-2026-11-09.md`.
 
 ## Tablero

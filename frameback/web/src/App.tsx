@@ -123,6 +123,7 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
   const [tlHeight, setTlHeight] = useState(() => readStoredHeight() ?? autoHeight(bundle.timeline?.tracks.length ?? 0, true));
   const draftCounter = useRef(0);
   const draftBody = useRef("");
+  const discardArmedAt = useRef(0);
 
   useEffect(() => { document.title = `${bundle.videoName} · Frameback`; }, [bundle.videoName]);
 
@@ -304,7 +305,8 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
       if (draft && draftBody.current.trim()) {
         e.preventDefault();
         if (typing) target.blur();
-        else if (window.confirm("Discard this comment?")) cancelComposing();
+        else if (Date.now() - discardArmedAt.current < 2500) { discardArmedAt.current = 0; cancelComposing(); }
+        else { discardArmedAt.current = Date.now(); toasts.info("Press Esc again to discard this comment."); }
         return;
       }
       if (draft || regionTool || marks.in != null || marks.out != null) {

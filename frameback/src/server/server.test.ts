@@ -36,7 +36,7 @@ const newComment = (body: string, start = 1) => ({ comment: { anchor: { time: { 
 
 describe("registration", () => {
   it("answers health and rejects unknown paths", async () => {
-    expect(await getJson("/api/health")).toMatchObject({ app: "frameback", version: "0.1.0" });
+    expect(await getJson("/api/health")).toMatchObject({ app: "frameback", version: "0.1.1" });
     expect((await api("/api/nope")).status).toBe(404);
     expect((await api("/api/reviews/ghost")).status).toBe(404);
   });

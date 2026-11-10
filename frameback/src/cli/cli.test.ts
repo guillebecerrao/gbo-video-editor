@@ -48,7 +48,7 @@ const nc = (body: string, start = 1) => ({ anchor: { time: { start } }, category
 describe("frameback --version / errors", () => {
   it("prints the version", () => {
     const r = run("--version");
-    expect(r.stdout.trim()).toBe("0.1.0");
+    expect(r.stdout.trim()).toBe("0.1.1");
   });
 
   it("reports a missing review without a stack trace", () => {

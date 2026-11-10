@@ -32,7 +32,7 @@ export function TopBar({ bundle, review, comments, live, onProcess, onHelp }: To
       </div>
       <VersionSwitcher bundle={bundle} />
       <span className={`state state-${review.state}`}>{STATE_LABEL[review.state]}</span>
-      <span className="round" title="Review round">Round {review.round}</span>
+      {review.round > 1 && <span className="round" title="Feedback rounds on this version: it went up because the review was reopened">Round {review.round}</span>}
       <div className="counts" aria-label="Comment counts">
         <span title="All comments"><b>{counts.all}</b> {counts.all === 1 ? "comment" : "comments"}</span>
         <span title="Waiting on the agent" className={counts.needs_action ? "c-action" : ""}><b>{counts.needs_action}</b> open</span>

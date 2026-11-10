@@ -5,9 +5,15 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-09
+
 ### Changed
 
-- Docs: install from npm (`npm install -g frameback` / `npx frameback`), badges.
+- Docs: install from npm (`npm install -g frameback` / `npx frameback`), badges, and links to
+  [gbo-video](https://github.com/guillebecerrao/gbo-video), the Claude Code editing skill that integrates Frameback.
+- Discarding a typed comment with Esc no longer opens a native browser dialog: press Esc twice.
+- The comment filters stay on one row (they scroll sideways on narrow panels).
+- The top bar shows "Round N" only after a review was reopened, so a fresh version no longer reads "Round 1".
 
 ## [0.1.0] - 2026-11-09
 
