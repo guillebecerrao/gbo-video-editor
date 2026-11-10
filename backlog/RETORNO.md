@@ -1,6 +1,6 @@
 ---
-fecha: 2026-11-09 08:50
-motivo: pausa decidida (lote entregado, espera validación humana)
+fecha: 2026-11-09 21:45
+motivo: fin de sesión (todo publicado y pusheado; espera validación humana y GIF)
 sesion: —
 ---
 
@@ -13,7 +13,8 @@ sesion: —
 1. Leer la guía marcada: los `[!]` y `[~]` pasan a ítems `fix`/retrabajo del lote siguiente.
 2. Aplicar las decisiones de publicación (nombre, OWNER, links, historia limpia) — publicar solo con orden explícita.
 3. ~~Pendientes menores~~ resueltos en 0.1.1 (2026-11-09): la tarjeta respondida ya no muestra la caja de espera; descartar con Esc dos veces en vez de `window.confirm`; filtros en una fila con scroll lateral; "Round N" solo tras reabrir.
-4. Publicar `frameback@0.1.1` en npm (lo corre Guillermo en Terminal.app por la passkey). GIF del README pendiente de su grabación.
+4. `frameback@0.1.1` publicado por Guillermo (2026-11-09). Pendiente: GIF del README (Guillermo graba ~15 s con Cmd+Shift+5 → convertir a `docs/media/frameback.gif`, insertar en el placeholder del README, publicar 0.1.2) y, opcional, `npm deprecate frameback@0.0.0-stage`.
+5. Repos: `guillebecerrao/gbo-video-editor` (este, registro), `guillebecerrao/frameback` (clon limpio en `~/code/frameback`, rsync desde `frameback/`), `guillebecerrao/gbo-video` (skill de edición, integra Frameback en `references/frameback.md`).
 
 ## Estado
 
