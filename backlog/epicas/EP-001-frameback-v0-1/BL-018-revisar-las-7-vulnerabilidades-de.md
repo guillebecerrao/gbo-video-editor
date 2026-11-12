@@ -43,3 +43,4 @@ historial:
 - 2026-11-12 — creado (salida de npm ci de Guillermo, 2026-11-12: 7 vulnerabilidades (3 moderate, 2 high, 2 critical)).
 
 - Regla del perfil: ninguna versión publicada con brechas. Criterio: separar dependencias de runtime (llegan al usuario por npm) de las de desarrollo; arreglar las de runtime sin breaking changes; documentar el resto.
+- 2026-11-12 — Triage (audit-012): 7 hallazgos, 6 de desarrollo (vitest/tinypool/vite/esbuild; no llegan al paquete) y 1 de runtime: zod 3.25.76 (GHSA-mrhx-c7xc-m3w5, high, DoS de memoria con colecciones acotadas; improbable en Frameback). Sin parche en 3.x. Decisión del orquestador por la regla «ninguna versión publicada con brechas»: migrar zod a 4 antes de 0.1.2 (el SDK MCP acepta ^4). vitest 5 queda para 0.1.3 (solo dev).
