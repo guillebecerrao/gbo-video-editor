@@ -5,7 +5,7 @@ tipo: chore
 via: mantenimiento
 acepta: "Guillermo"
 padre: EP-001
-estado: propuesto
+estado: pospuesto
 creado: 2026-11-12
 actualizado: 2026-11-12
 valor: {estrategico: null, urgencia: null, habilita: null}
@@ -23,6 +23,7 @@ release: null
 resultado: {senal: "ninguna: higiene", revisar: null, observado: null, experimento: null}   # experimento: EXP-NN (ciclo completo)
 historial:
   - {estado: propuesto, fecha: 2026-11-12T13:30}
+  - {estado: pospuesto, fecha: 2026-11-12T13:53, por: "Guillermo (dueño de gbo-video, antes gbo-style)"}
 ---
 
 # BL-014 · Frameback 0.1.2: GIF del README y deprecar 0.0.0-stage
@@ -40,3 +41,4 @@ Pendientes de la publicación de 0.1.1.
 ## Registro
 
 - 2026-11-12 — creado (RETORNO 2026-11-09).
+- 2026-11-12 — Guillermo posterga la validación del lote 0.1.2 y la publicación de 0.1.2.

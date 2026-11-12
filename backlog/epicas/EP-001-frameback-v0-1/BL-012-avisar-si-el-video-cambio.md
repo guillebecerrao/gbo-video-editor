@@ -54,3 +54,4 @@ Si el archivo cambia bajo la misma ruta, Frameback lo avisa; la forma correcta d
 
 - 2026-11-12 — creado (retro de videos editados, vía sesión de consolidación 2026-11-12).
 - 2026-11-12 — entregado en `fix/video-fingerprint` (ed5ea11). Comprobado por el orquestador: typecheck OK, 148/148 tests. Pendiente: ver el banner en el navegador e integrar junto a BL-011.
+- 2026-11-12 — Guillermo posterga la validación del lote 0.1.2 y la publicación de 0.1.2.

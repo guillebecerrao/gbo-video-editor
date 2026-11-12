@@ -11,15 +11,15 @@
 <!-- tablero:inicio -->
 | Columna | N.º | Ítems |
 |---|---|---|
-| Refinar | 1 | BL-014 · frameback-0-1-2-gif |
+| Refinar | 0 | — |
 | Listo | 1 | BL-001 · frameback-v0-1 |
 | En curso | 1 | BL-013 · revisar-pr-1-externo-docker (bloqueado) |
 | Revisión | 8 | BL-002 · l1-servidor-http-cli-adaptad; BL-003 · l2-ui-web-player-regiones; BL-004 · l3-servidor-mcp-list-get; BL-005 · l4-kit-de-agente-skill; BL-006 · l5-integracion-opcional-en-g; BL-007 · revision-multi-agente-post-i; BL-008 · comentarios-traspasados-apun; BL-009 · comentarios-verificados-cola |
 | Validar | 2 | BL-011 · frameback-watch-reanuda-desd; BL-012 · avisar-si-el-video-cambio |
 | Validado | 0 | — |
 | Prod | 0 | — |
-| Ideas | 1 | ver `items/` |
+| Ideas | 2 | ver `items/` |
 
-**Por vía** (sin ideas ni descartados): evidencia 4 · mantenimiento 2 · apuesta 7.
-**Sin traza al OST** (evidencia o sin vía): 4 de 13.
+**Por vía** (sin ideas ni descartados): evidencia 4 · mantenimiento 1 · apuesta 7.
+**Sin traza al OST** (evidencia o sin vía): 4 de 12.
 <!-- tablero:fin -->
