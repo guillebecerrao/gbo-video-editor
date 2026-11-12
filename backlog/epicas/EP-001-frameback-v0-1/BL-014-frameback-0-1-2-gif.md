@@ -43,3 +43,4 @@ Pendientes de la publicación de 0.1.1.
 - 2026-11-12 — creado (RETORNO 2026-11-09).
 - 2026-11-12 — Guillermo posterga la validación del lote 0.1.2 y la publicación de 0.1.2.
 - 2026-11-12 — Candidato 0.1.2 listo en rama `release/0.1.2` (393f6fe, worktree ../gbo-video-editor-release-012): versión, CHANGELOG (fecha YYYY-MM-DD a completar), 178/178 tests, build, smoke. Comparado con el repo público 0.1.1: nada que se pierda (la copia y el público eran idénticos en 0.1.1, según la sesión video-creation-ff). Falta: validación V1–V5, GIF y fecha; publica Guillermo.
+- 2026-11-12 — Guillermo decide publicar 0.1.2 sin GIF; el GIF pasa a 0.1.3.
