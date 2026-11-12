@@ -1,0 +1,42 @@
+---
+id: BL-014
+titulo: "Frameback 0.1.2: GIF del README y deprecar 0.0.0-stage"
+tipo: chore
+via: mantenimiento
+acepta: "Guillermo"
+padre: EP-001
+estado: propuesto
+creado: 2026-11-12
+actualizado: 2026-11-12
+valor: {estrategico: null, urgencia: null, habilita: null}
+tamano: null          # XS | S | M | L
+riesgo: null          # bajo | medio | alto
+puntaje: null
+toca: []              # rutas o áreas reales del repo, entre comillas si llevan corchetes o paréntesis
+depende_de: []
+asignacion: {carril: null, agente: null, worktree: null, rama: null}
+lote: null
+trazabilidad: {objetivo: null, origen: "RETORNO 2026-11-09", evidencia: [], spec: null}   # objetivo: nodo OST u objetivo; spec: Iteration PRD (ciclo completo)
+retrabajos: 0
+prs: []
+release: null
+resultado: {senal: "ninguna: higiene", revisar: null, observado: null, experimento: null}   # experimento: EXP-NN (ciclo completo)
+historial:
+  - {estado: propuesto, fecha: 2026-11-12T13:30}
+---
+
+# BL-014 · Frameback 0.1.2: GIF del README y deprecar 0.0.0-stage
+
+## Problema / intención
+
+Pendientes de la publicación de 0.1.1.
+
+## Criterios de aceptación
+
+- [ ] La persona responsable graba ~15 s (Cmd+Shift+5) → `docs/media/frameback.gif` → se inserta en el placeholder del README.
+- [ ] Bump a 0.1.2 + CHANGELOG; la persona responsable publica en npm.
+- [ ] Opcional: `npm deprecate frameback@0.0.0-stage` (lo corre la persona responsable).
+
+## Registro
+
+- 2026-11-12 — creado (RETORNO 2026-11-09).
