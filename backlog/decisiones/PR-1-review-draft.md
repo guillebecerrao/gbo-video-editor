@@ -1,4 +1,4 @@
-# Borrador — comentario del PR #1 (no publicado; lo publica Guillermo o el orquestador con su orden)
+# Comentario del PR #1 — PUBLICADO el 2026-11-12 como «Request changes»
 
 > BL-013 · revisar PR #1 externo. Versión 2 (2026-11-12), con el contexto de Guillermo: Felipe es amigo, el repo es
 > público como parte del building in public y el caso real es revisar desde otro computador (BL-015). Revisión estática;

@@ -53,3 +53,4 @@ PR #1 en el repo público, de un contribuidor externo: soporte Docker (Dockerfil
 - 2026-11-12 — creado (PR externo en el repo público, 2026-11-12).
 - 2026-11-12 — borrador del comentario en `backlog/decisiones/PR-1-review-draft.md`. No se ejecutó el código del PR (bloqueado por política: código externo); falta verificarlo en local antes de mergear. Espera que Guillermo publique el comentario.
 - 2026-11-12 — Contexto de Guillermo: Felipe (filipop) es amigo. El PR no resuelve revisar desde otro computador (el guard exige localhost) → BL-015. Postura: Docker como opción extra; webhook en un PR aparte (configuración técnica y manual, nicho). Sugerido: hablar con Felipe antes de responder en GitHub.
+- 2026-11-12 17:28 UTC — revisión «Request changes» publicada en el PR #1 por orden de Guillermo («publícalo»). Espera la respuesta de Felipe (ajustes en Docker + webhook en un PR aparte).
