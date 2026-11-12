@@ -9,7 +9,7 @@ If `frameback` is not on PATH, install it with `npm install -g frameback` (or ru
 | Goal | Command |
 |------|---------|
 | Open the UI for a video (registers on an already running instance) | `frameback open <video> [--port 4747] [--no-open] [--edl p] [--timeline p] [--no-carry]` |
-| Stream events (one per line) | `frameback watch <target> --json [--actor human,system] [--since <seq>] [--tail] [--exit-on review.submitted]` |
+| Stream events (one per line; run under Monitor, required) | `frameback watch <target> --json --actor human,system [--since <seq>] [--tail]` (`--exit-on review.submitted` = degraded, not real time) |
 | Same, human readable | `frameback watch <target> --text` |
 | List comments and resume point | `frameback list <target> --json [--agent-status pending,needs_info]` (returns `{lastSeq, review, comments}`) |
 | One comment (with snapshot path) | `frameback show <target> <id> --json` |

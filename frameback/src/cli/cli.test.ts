@@ -1,3 +1,4 @@
+import { humanViewNotice } from "./watch.js";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { spawn, spawnSync } from "node:child_process";
 import { promises as fs } from "node:fs";
@@ -80,6 +81,7 @@ describe("frameback watch", () => {
     expect(events.map((e) => e.type)).toEqual(["review.opened", "comment.created", "comment.created", "review.submitted"]);
     expect(events.map((e) => e.seq)).toEqual([1, 2, 3, 4]);
     expect(w.err()).toMatch(/watching .*cut_v1/);
+    expect(w.err()).not.toMatch(/human view/); // piped stdout: no notice
   });
 
   it("waits for a review that does not exist yet", async () => {
@@ -262,5 +264,13 @@ describe("frameback open on a video that changed", () => {
     const dir = S.reviewDirForVideo(video);
     expect((await S.checkVideo(dir)).changed).toBe(false);
     expect((await S.readEvents(dir)).map((e) => e.type)).toContain("review.video_adopted");
+  });
+});
+
+describe("watch human-view notice", () => {
+  it("warns only on a terminal without --json", () => {
+    expect(humanViewNotice(true, false)).toMatch(/human view.*--json/);
+    expect(humanViewNotice(true, true)).toBeNull();
+    expect(humanViewNotice(false, false)).toBeNull();
   });
 });

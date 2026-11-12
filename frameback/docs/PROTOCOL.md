@@ -130,8 +130,11 @@ frameback export <reviewDir> [--format md|json]       # FEEDBACK.md-style summar
 
 `watch --json` prints exactly one Event JSON per line on stdout and flushes; diagnostics go to stderr.
 Agents should pass `--actor human,system` so they are not notified of their own writes.
-Designed for Claude Code: run it with the Monitor tool (one notification per comment) or as a background task with
-`--exit-on review.submitted` (one notification when the review is done).
+Designed for Claude Code: agents run `watch --json` with the Monitor tool (or any persistent background process), so each
+comment is delivered as it is sent and can be handled while the reviewer keeps working; `review.submitted` only closes
+the round. `--exit-on review.submitted` is a degraded fallback for environments that cannot keep a background process:
+it notifies only when the round closes, so it is **not** real time. On a terminal `watch` defaults to a human-readable
+view and prints a stderr notice; agents must pass `--json`.
 
 ### MCP (`frameback mcp`, stdio)
 

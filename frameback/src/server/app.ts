@@ -134,7 +134,7 @@ export function createApp(opts: AppOptions): express.Express {
       if (!keyMatches(share.key, cookieValue(req.headers.cookie, SHARE_COOKIE))) {
         if (req.method === "GET" && keyMatches(share.key, req.query.key)) {
           const maxAge = Math.max(1, Math.floor((share.expiresAt - Date.now()) / 1000));
-          res.append("Set-Cookie", `${SHARE_COOKIE}=${share.key}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}`);
+          res.append("Set-Cookie", `${SHARE_COOKIE}=${share.key}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}`);
           const url = new URL(req.originalUrl, "http://x");
           url.searchParams.delete("key");
           return res.redirect(302, url.pathname + url.search);

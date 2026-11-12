@@ -90,9 +90,11 @@ frameback open video.mp4 --share tailscale   # only over Tailscale (encrypted)
 frameback open video.mp4 --share             # Tailscale and your private wifi/LAN
 ```
 
-It prints the links, Tailscale first (`http://studio-mac.example.ts.net:4747/?key=…`, marked encrypted), then the local
-network ones (`http://studio-mac.local:4747/?key=…`, `http://192.168.1.20:4747/?key=…`, marked "trusted networks only").
-Open one on the other computer. The link contains a private key: whoever has it can watch, comment and submit the
+It prints one recommended link (`http://100.x.y.z:4747/?key=…`, the Tailscale IP, or your LAN IP when Tailscale is not
+running): open that one on the other computer. It does not depend on DNS. Below it come alternative addresses for the
+same review (the `*.ts.net` name, `studio-mac.local`), to try only if the first does not open. The link marked
+"this Mac only" has no key and works only on this computer.
+The recommended link contains a private key: whoever has it can watch, comment and submit the
 review, and nothing else (they cannot open other files or change the server). It expires after 12 hours
 (`--share-ttl <hours>`, max 24) or when you close the command. Plain wifi traffic is not encrypted: on a network you do
 not trust, use `--share tailscale`. See [SECURITY.md](SECURITY.md).
@@ -120,7 +122,8 @@ other), an optional action (remove, change, add, move, keep, question) and a pri
 
 1. The agent delivers a video and runs `frameback open <video>`.
 2. It listens: **Claude Code** runs `frameback watch <video> --json --actor human,system` with the Monitor tool (one notification per
-   comment), or a background task with `--exit-on review.submitted`.
+   comment, handled as it arrives). A background task with `--exit-on review.submitted` is only a degraded fallback
+   (no real time: it fires when the round closes).
 3. For each comment it looks at the snapshot, then acknowledges, prepares a change against a *staging* edit, or asks a
    question in the thread. You see statuses and replies update live.
 4. You press **Process review**. The agent finishes what is left, renders **once** to `…_v2.mp4`, marks comments

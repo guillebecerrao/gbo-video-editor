@@ -207,7 +207,7 @@ export const Event = z.object({
   review: z.string(),
   commentId: z.string().optional(),
   actor: Actor,
-  data: z.record(z.unknown()).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 });
 
 // ------------------------------------------------------------- timeline ----
@@ -219,7 +219,7 @@ export const TimelineItem = z.object({
   end: Seconds.nullable().optional(),
   label: z.string().optional(),
   source: z.object({ name: z.string(), start: Seconds, end: Seconds.optional() }).optional(),
-  meta: z.record(z.unknown()).optional(),
+  meta: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const TimelineTrack = z.object({

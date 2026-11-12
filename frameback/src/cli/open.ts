@@ -70,17 +70,32 @@ const LABEL: Record<ShareLink["kind"], string> = {
   lan: "local network · trusted networks only (home/office)",
 };
 
-function printShare(links: ShareLink[]): void {
-  if (links.length === 0) {
-    console.log("No private network found to share on (connect to a wifi or start Tailscale, then run again).");
-    return;
-  }
-  console.log("Open one of these on the other computer (Tailscale first: it is encrypted; plain wifi is not):");
-  for (const link of links) console.log(`  ${link.url}    [${LABEL[link.kind]}]`);
+const IP_HOST = /^http:\/\/\d{1,3}(\.\d{1,3}){3}:/;
+
+/** The one link to hand over: a Tailscale IP (no DNS needed), else a LAN IP, else whatever is first. */
+export function pickRecommended(links: ShareLink[]): ShareLink {
+  const byIp = (kind: ShareLink["kind"]) => links.find((l) => l.kind === kind && IP_HOST.test(l.url));
+  return byIp("tailscale") ?? byIp("lan") ?? links[0];
 }
 
-function announce(port: number, rid: string, reviewDir: string): void {
-  console.log(`Frameback: http://${HOST}:${port}/?r=${encodeURIComponent(rid)}`);
+export function formatShare(links: ShareLink[]): string[] {
+  if (links.length === 0) return ["No private network found to share on (connect to a wifi or start Tailscale, then run again)."];
+  const main = pickRecommended(links);
+  const others = links.filter((l) => l !== main);
+  const out = ["", "To review from another computer, open this link there:", `  ${main.url}    [${LABEL[main.kind]}]`];
+  if (others.length) {
+    out.push("", "Other addresses for the same review (use them only if the one above does not open):");
+    for (const l of others) out.push(`  ${l.url}    [${LABEL[l.kind]}]`);
+  }
+  return out;
+}
+
+function printShare(links: ShareLink[]): void {
+  for (const line of formatShare(links)) console.log(line);
+}
+
+function announce(port: number, rid: string, reviewDir: string, shared = false): void {
+  console.log(`${shared ? "Frameback (this Mac only, no key)" : "Frameback"}: http://${HOST}:${port}/?r=${encodeURIComponent(rid)}`);
   console.log(`Review dir: ${reviewDir}`);
 }
 
@@ -132,7 +147,7 @@ export async function openCommand(videoArg: string, opts: OpenCommandOptions): P
           }
         }
         const summary = await registerRemote(port, request);
-        announce(port, summary.rid, summary.reviewDir);
+        announce(port, summary.rid, summary.reviewDir, !!opts.share);
         report(summary.carried, summary.warnings);
         if (opts.share) printShare((await remoteShare(port, summary.rid)).links);
         if (opts.open) await openBrowser(`http://${HOST}:${port}/?r=${encodeURIComponent(summary.rid)}`);
@@ -158,7 +173,7 @@ export async function openCommand(videoArg: string, opts: OpenCommandOptions): P
         throw e;
       }
       const { entry, prepared } = result;
-      announce(server.port, entry.rid, entry.reviewDir);
+      announce(server.port, entry.rid, entry.reviewDir, !!opts.share);
       report(prepared.carried, prepared.warnings);
       if (opts.dev) {
         console.error("frameback: dev mode — the API is served here, the UI comes from the Vite dev server");

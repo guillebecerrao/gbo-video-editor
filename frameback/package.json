@@ -1,6 +1,6 @@
 {
   "name": "frameback",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Local review tool for agentic video editing: anchor comments to frames, regions, ranges and timeline entities; your AI editing agent picks them up live.",
   "license": "MIT",
   "author": "Guillermo Becerra (GBO)",
@@ -55,7 +55,7 @@
     "commander": "^12.1.0",
     "express": "^4.21.2",
     "open": "^10.1.0",
-    "zod": "^3.24.1"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
