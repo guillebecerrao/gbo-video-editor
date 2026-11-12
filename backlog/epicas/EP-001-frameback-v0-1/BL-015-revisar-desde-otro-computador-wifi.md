@@ -5,7 +5,7 @@ tipo: historia
 via: evidencia
 acepta: "Guillermo"
 padre: EP-001
-estado: propuesto
+estado: aprobado
 creado: 2026-11-12
 actualizado: 2026-11-12
 valor: {estrategico: null, urgencia: null, habilita: null}
@@ -23,6 +23,7 @@ release: null
 resultado: {senal: "Guillermo revisa sus ediciones desde el otro MacBook sin pasos técnicos", revisar: null, observado: null, experimento: null}   # experimento: EXP-NN (ciclo completo)
 historial:
   - {estado: propuesto, fecha: 2026-11-12T14:22}
+  - {estado: aprobado, fecha: 2026-11-12T14:25, por: "Guillermo (dueño de gbo-video, antes gbo-style)"}
 ---
 
 ## Problema / intención
@@ -40,3 +41,4 @@ historial:
 ## Registro
 
 - 2026-11-12 — creado (pedido de Guillermo 2026-11-12: edita en un MacBook y revisa desde otro).
+- 2026-11-12 — Aprobado por Guillermo («avanza»). Preguntas resueltas por el orquestador como defaults revisables: (1) `--share` explícito; el agente lo usa cuando quien revisa dice que está en otro equipo; (2) la clave dura lo que dura el proceso (link nuevo en cada arranque).
