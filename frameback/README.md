@@ -9,7 +9,7 @@ and write what you want changed. Your agent sees it the moment you send it, prep
 reviewing, and renders the next version once. 100% local, open source, no accounts.
 
 Created by **Guillermo Becerra (GBO)** · [@guillebecerrao](https://github.com/guillebecerrao) · as the review companion of
-[gbo-video](https://github.com/guillebecerrao/gbo-video), his open-source agentic video editing skill.
+[gbo-video](https://github.com/guillebecerrao/gbo-video-method), his open-source agentic video editing skill.
 [Source](https://github.com/guillebecerrao/frameback) · [Issues](https://github.com/guillebecerrao/frameback/issues) · [Security](SECURITY.md)
 
 ## The problem
@@ -136,7 +136,7 @@ claude mcp add frameback -- frameback mcp
 claude mcp add frameback -- node /absolute/path/to/frameback/dist/cli/index.js mcp
 ```
 
-Editing with [gbo-video](https://github.com/guillebecerrao/gbo-video)? It already includes this loop; you only need
+Editing with [gbo-video](https://github.com/guillebecerrao/gbo-video-method)? It already includes this loop; you only need
 the `frameback` command on your PATH.
 
 Not using Claude Code? Point any agent at [`docs/INTEGRATION.md`](docs/INTEGRATION.md) (plain files, CLI, or MCP).
@@ -147,7 +147,7 @@ Not using Claude Code? Point any agent at [`docs/INTEGRATION.md`](docs/INTEGRATI
 - **Any EDL-based pipeline.** If an `edl.json` sits next to the video (`sources`, `ranges`, `broll`, word-level
   transcripts), Frameback derives cuts, transitions, B-roll, captions and words tracks from it. The shape is the
   `video-use` `edl.json` shape, described in [`docs/PROTOCOL.md`](docs/PROTOCOL.md) §6.
-- **[gbo-video](https://github.com/guillebecerrao/gbo-video).** The Claude Code video editing skill writes the
+- **[gbo-video](https://github.com/guillebecerrao/gbo-video-method).** The Claude Code video editing skill writes the
   timeline sidecar on every render and runs the Frameback review loop out of the box (optional: it works without it).
 - **Timeline sidecar.** Emit `<video stem>.timeline.json` for an exact timeline. Spec and converters in
   [`docs/INTEGRATION.md`](docs/INTEGRATION.md).

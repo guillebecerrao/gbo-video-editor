@@ -16,12 +16,15 @@ versioning follows [SemVer](https://semver.org/).
   - Without `--share` nothing changes. If a server is already running without `--share` (or with another network mode, or an expired link), `open --share` asks you to restart it; otherwise it prints that server's links.
 - Video fingerprint (size, mtime, edge hash) saved when a review is opened. If the file is overwritten under the same name, the UI shows a persistent warning, `/api/reviews/:rid/video-status` reports it, and `frameback open` refuses with a `_v(N+1)` suggestion unless `--force` (recorded as `review.video_adopted`). Optional `video.fingerprint` in `review.json`; reviews without it adopt the current file silently.
 
+### Changed
+- Links point to the renamed gbo-video-method repository.
+
 ## [0.1.1] - 2026-11-09
 
 ### Changed
 
 - Docs: install from npm (`npm install -g frameback` / `npx frameback`), badges, and links to
-  [gbo-video](https://github.com/guillebecerrao/gbo-video), the Claude Code editing skill that integrates Frameback.
+  [gbo-video](https://github.com/guillebecerrao/gbo-video-method), the Claude Code editing skill that integrates Frameback.
 - Discarding a typed comment with Esc no longer opens a native browser dialog: press Esc twice.
 - The comment filters stay on one row (they scroll sideways on narrow panels).
 - The top bar shows "Round N" only after a review was reopened, so a fresh version no longer reads "Round 1".
