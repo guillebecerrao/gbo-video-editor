@@ -15,7 +15,7 @@ revisado: 2026-11-09
 
 ## Repo y verificación
 
-- **Rama principal:** main (sin remoto).
+- **Rama principal:** main (remoto `origin` = github.com/guillebecerrao/gbo-video-editor, público).
 - **Producto:** vive en `frameback/` (extraíble como repo propio con `git subtree split --prefix=frameback`). `p60/`, `backlog/` y `.claude/` son privados.
 - **Crear un worktree:** `git worktree add ../gbo-video-editor-<slug> -b feat/<slug> main`
 - **Verificación liviana:** `cd frameback && npm run typecheck && npm test`
@@ -49,7 +49,7 @@ revisado: 2026-11-09
 
 ## Prohibido sin orden explícita
 
-- Publicar en GitHub/npm, push a remotos.
+- Publicar en GitHub/npm, push a remotos (salvo orden explícita para ese push).
 - Incluir en `frameback/` datos personales, rutas de la máquina, nombres de proyectos/clientes/personas, tokens de marca reales.
 
 ## Estrategia
@@ -76,3 +76,5 @@ revisado: 2026-11-09
 | 2026-11-09 | **gbo-style se reemplazó** por `gbo-video` (skill pública, github.com/guillebecerrao/gbo-video) + un perfil local privado. Lo público de Frameback y de este repo enlaza solo a gbo-video; nunca al perfil privado. Las reglas de arriba sobre gbo-style aplican ahora a gbo-video (integración opcional, sin dependencia dura) | Cambio del ecosistema informado por el responsable |
 | 2026-11-09 | El README y la LICENCIA atribuyen la autoría a Guillermo Becerra (GBO); sin otros datos personales | Marca personal + repo público |
 | 2026-11-12 | Lo que no necesita a Guillermo se avanza sin preguntar; con otras sesiones se **informan** nuestras decisiones, no se les piden | Pedido del responsable |
+| 2026-11-12 | **Ninguna versión publicada con brechas de seguridad.** Todo lo que abra Frameback a la red pasa una revisión de seguridad (allowlist de rutas, quién confía en quién) y se prueba con ataques antes de cualquier push; si hubo un commit vulnerable sin publicar, se reescribe la historia local antes de empujar | Pedido del responsable |
+
