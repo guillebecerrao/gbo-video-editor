@@ -5,7 +5,7 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
-## [0.1.2] - YYYY-MM-DD
+## [0.1.2] - 2026-11-12
 
 ### Changed
 - The `frameback-review` skill now requires handling **each comment as it arrives** (Monitor on `watch --json`: classify, queue or delegate to subagents, set `agent_status`) while the reviewer keeps going; **Process review** only closes the round (integrate, render the next version). `--exit-on review.submitted` is documented as a degraded, non-real-time fallback (SKILL, reference, PROTOCOL, README).
