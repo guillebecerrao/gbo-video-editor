@@ -5,7 +5,7 @@ tipo: fix
 via: evidencia
 acepta: "Guillermo"
 padre: EP-001
-estado: en-revision
+estado: en-validacion
 creado: 2026-11-12
 actualizado: 2026-11-12
 valor: {estrategico: null, urgencia: null, habilita: null}
@@ -15,7 +15,7 @@ puntaje: null
 toca: ["frameback/src/core/store.ts", "frameback/src/server/app.ts", "frameback/src/cli/open.ts"]              # rutas o áreas reales del repo, entre comillas si llevan corchetes o paréntesis
 depende_de: []
 asignacion: {carril: "2", agente: "bl012-fingerprint", worktree: "../gbo-video-editor-video-fingerprint", rama: "fix/video-fingerprint"}
-lote: null
+lote: 0.1.2
 trazabilidad: {objetivo: null, origen: "retro de videos editados, vía sesión de consolidación 2026-11-12", evidencia: [], spec: null}   # objetivo: nodo OST u objetivo; spec: Iteration PRD (ciclo completo)
 retrabajos: 0
 prs: []
@@ -26,6 +26,7 @@ historial:
   - {estado: aprobado, fecha: 2026-11-12T13:37, por: "Guillermo (dueño de gbo-video, antes gbo-style)"}
   - {estado: en-curso, fecha: 2026-11-12T13:37}
   - {estado: en-revision, fecha: 2026-11-12T13:41}
+  - {estado: en-validacion, fecha: 2026-11-12T13:44}
 ---
 
 # BL-012 · Avisar si el video cambió bajo la misma ruta tras abrirlo

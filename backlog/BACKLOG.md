@@ -2,7 +2,7 @@
 
 ## Para ti (máx. 3)
 
-- Probar: Frameback v0.1 — `backlog/revisiones/2026-11-09-frameback-v0-1.md` (demo + tu video real + gbo-video).
+- Probar: lote 0.1.2 (BL-011 · watch retoma donde quedó, BL-012 · aviso si el video cambió) — `backlog/revisiones/2026-11-12-frameback-0-1-2.md`. También: Frameback v0.1 — `backlog/revisiones/2026-11-09-frameback-v0-1.md` (demo + tu video real + gbo-video).
 - Decidir: mejoras propuestas desde las retros (BL-010..BL-014) y el PR #1 externo — ver BL-013 · revisar PR #1 externo.
 - Decidir: publicación (nombre, historia limpia, usuario GitHub, links, GIF, npm) — `backlog/decisiones/DEC-2026-11-09.md`.
 
@@ -14,8 +14,8 @@
 | Refinar | 1 | BL-014 · frameback-0-1-2-gif |
 | Listo | 1 | BL-001 · frameback-v0-1 |
 | En curso | 1 | BL-013 · revisar-pr-1-externo-docker (bloqueado) |
-| Revisión | 10 | BL-002 · l1-servidor-http-cli-adaptad; BL-003 · l2-ui-web-player-regiones; BL-004 · l3-servidor-mcp-list-get; BL-005 · l4-kit-de-agente-skill; BL-006 · l5-integracion-opcional-en-g; BL-007 · revision-multi-agente-post-i; BL-008 · comentarios-traspasados-apun; BL-009 · comentarios-verificados-cola; BL-011 · frameback-watch-reanuda-desd; BL-012 · avisar-si-el-video-cambio |
-| Validar | 0 | — |
+| Revisión | 8 | BL-002 · l1-servidor-http-cli-adaptad; BL-003 · l2-ui-web-player-regiones; BL-004 · l3-servidor-mcp-list-get; BL-005 · l4-kit-de-agente-skill; BL-006 · l5-integracion-opcional-en-g; BL-007 · revision-multi-agente-post-i; BL-008 · comentarios-traspasados-apun; BL-009 · comentarios-verificados-cola |
+| Validar | 2 | BL-011 · frameback-watch-reanuda-desd; BL-012 · avisar-si-el-video-cambio |
 | Validado | 0 | — |
 | Prod | 0 | — |
 | Ideas | 1 | ver `items/` |
