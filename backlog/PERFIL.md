@@ -77,4 +77,5 @@ revisado: 2026-11-09
 | 2026-11-09 | El README y la LICENCIA atribuyen la autoría a Guillermo Becerra (GBO); sin otros datos personales | Marca personal + repo público |
 | 2026-11-12 | Lo que no necesita a Guillermo se avanza sin preguntar; con otras sesiones se **informan** nuestras decisiones, no se les piden | Pedido del responsable |
 | 2026-11-12 | **Ninguna versión publicada con brechas de seguridad.** Todo lo que abra Frameback a la red pasa una revisión de seguridad (allowlist de rutas, quién confía en quién) y se prueba con ataques antes de cualquier push; si hubo un commit vulnerable sin publicar, se reescribe la historia local antes de empujar | Pedido del responsable |
+| 2026-11-12 | **El orquestador no construye ni integra.** Planifica, registra, decide y revisa informes; verificaciones (tests, curl, navegador), merges, limpieza de historia y push se delegan a agentes cortos. La sesión principal queda libre para el backlog y las preguntas del responsable | Corrección del responsable: el orquestador estaba haciendo verificación e integración a mano |
 
