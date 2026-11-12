@@ -19,7 +19,7 @@ revisado: 2026-11-09
 - **Producto:** vive en `frameback/` (extraíble como repo propio con `git subtree split --prefix=frameback`). `p60/`, `backlog/` y `.claude/` son privados.
 - **Crear un worktree:** `git worktree add ../gbo-video-editor-<slug> -b feat/<slug> main`
 - **Verificación liviana:** `cd frameback && npm run typecheck && npm test`
-- **Verificación pesada:** `cd frameback && npm run build && npm run e2e` (demo sintético).
+- **Verificación pesada:** `cd frameback && npm run build && npm run smoke` (demo sintético; no existe script `e2e`).
 - **Levantar el entorno local:** `cd frameback && npm run demo` (genera proyecto demo y abre la app).
 
 ## Entornos
@@ -75,3 +75,4 @@ revisado: 2026-11-09
 | 2026-11-09 | Nombre del producto: **Frameback** (antes "Glosa"). Libres en npm como alternativa: pinframe, cutnote, reelback | Pedido del responsable: nombre brandeable para su marca personal |
 | 2026-11-09 | **gbo-style se reemplazó** por `gbo-video` (skill pública, github.com/guillebecerrao/gbo-video) + un perfil local privado. Lo público de Frameback y de este repo enlaza solo a gbo-video; nunca al perfil privado. Las reglas de arriba sobre gbo-style aplican ahora a gbo-video (integración opcional, sin dependencia dura) | Cambio del ecosistema informado por el responsable |
 | 2026-11-09 | El README y la LICENCIA atribuyen la autoría a Guillermo Becerra (GBO); sin otros datos personales | Marca personal + repo público |
+| 2026-11-12 | Lo que no necesita a Guillermo se avanza sin preguntar; con otras sesiones se **informan** nuestras decisiones, no se les piden | Pedido del responsable |
