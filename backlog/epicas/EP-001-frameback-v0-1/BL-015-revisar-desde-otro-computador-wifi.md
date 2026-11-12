@@ -5,7 +5,7 @@ tipo: historia
 via: evidencia
 acepta: "Guillermo"
 padre: EP-001
-estado: en-validacion
+estado: validado
 creado: 2026-11-12
 actualizado: 2026-11-12
 valor: {estrategico: null, urgencia: null, habilita: null}
@@ -27,6 +27,7 @@ historial:
   - {estado: en-curso, fecha: 2026-11-12T14:25}
   - {estado: en-revision, fecha: 2026-11-12T14:31}
   - {estado: en-validacion, fecha: 2026-11-12T14:31}
+  - {estado: validado, fecha: 2026-11-12T18:29, por: "Guillermo"}
 ---
 
 ## Problema / intención
@@ -71,3 +72,4 @@ Las versiones sin `--share` no cambian: siguen escuchando solo en 127.0.0.1 con 
 - 2026-11-12 — V3 falla: el link de red local (wifi segura) no funciona desde el otro Mac; Tailscale sí. En diagnóstico (diag-lan).
 - 2026-11-12 — Diagnóstico V3 (diag-lan): servidor y Mac A correctos (escucha en la IP de wifi actual, firewall apagado, 401 por IP y .local, .local resuelve). Causa más probable: aislamiento de clientes en la wifi u otra subred en el Mac B. Pendiente: confirmación de Guillermo desde el Mac B. Mejora propuesta: avisar de la posible causa al arrancar y detectar cambios de IP.
 - 2026-11-12 — Causa de V3 confirmada por Guillermo: Chrome en el Mac B no tenía el permiso de «Red local» de macOS (macOS 15+). No es un bug de Frameback. Tailscale no cuenta como red local, por eso funcionaba.
+- 2026-11-12 — V1 (con clic), V2 y V3 validadas por Guillermo sobre release/0.1.2.
