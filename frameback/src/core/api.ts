@@ -32,7 +32,13 @@
  *  GET    /media/:rid/next                           -> 302 to the UI for review.nextVideo once delivered (registers it)
  *  GET    /*                                        -> web UI (dist/web); UI route: /?r=<rid>
  *
+ *  GET    /api/share?rid=                          -> { links, urls, mode, expiresAt } (share mode, trusted local clients only)
+ *
  * Security: bind 127.0.0.1 only; never serve paths that were not registered; ids validated by regex.
+ * Share mode (`open --share`): also listens on private addresses. Peers that are not a trusted local client (loopback
+ * socket + loopback Host + no proxy headers) need the key and may only call the review routes (allowlist in
+ * src/server/share.ts: read the review, comment, submit, reopen); anything else is 403. For them `reviewDir` is left
+ * out of ReviewSummary and absolute paths are removed from error messages.
  */
 import type { Comment, Review, Timeline, VideoInfo, VideoFingerprint, HumanStatus, CommentPatch, NewComment, Event } from "./schema.js";
 
@@ -49,11 +55,13 @@ export interface Health {
   app: "frameback";
   version: string;
   pid: number;
+  /** present (true) when the server runs with `--share` */
+  share?: boolean;
 }
 
 export interface ReviewSummary {
   rid: string;
-  reviewDir: string; // absolute
+  reviewDir: string; // absolute (omitted for share-mode remote peers)
   videoName: string; // basename
   state: Review["state"];
   counts: { total: number; pending: number; prepared: number; applied: number; needs_info: number; reopened?: number };

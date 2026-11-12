@@ -81,6 +81,22 @@ node examples/fake-agent.mjs examples/demo/edit/final_demo_v1.mp4   # in another
 The URL is printed on start. To use another port: `node dist/cli/index.js open examples/demo/edit/final_demo_v1.mp4 --port 4880`.
 <!-- Screenshot / GIF of the review UI: add docs/media/frameback.gif and embed it here before announcing. -->
 
+## Review from another computer
+
+Editing on one Mac and reviewing on another, over [Tailscale](https://tailscale.com) or the same home/office wifi?
+
+```sh
+frameback open video.mp4 --share tailscale   # only over Tailscale (encrypted)
+frameback open video.mp4 --share             # Tailscale and your private wifi/LAN
+```
+
+It prints the links, Tailscale first (`http://studio-mac.example.ts.net:4747/?key=…`, marked encrypted), then the local
+network ones (`http://studio-mac.local:4747/?key=…`, `http://192.168.1.20:4747/?key=…`, marked "trusted networks only").
+Open one on the other computer. The link contains a private key: whoever has it can watch, comment and submit the
+review, and nothing else (they cannot open other files or change the server). It expires after 12 hours
+(`--share-ttl <hours>`, max 24) or when you close the command. Plain wifi traffic is not encrypted: on a network you do
+not trust, use `--share tailscale`. See [SECURITY.md](SECURITY.md).
+
 ## Ways to anchor a comment
 
 | Anchor | How |
@@ -185,7 +201,7 @@ Run `frameback <command> --help` for every option. Targets (`<target>`) are a vi
 
 | Command | Purpose |
 |---------|---------|
-| `open <video> [--port] [--no-open] [--edl] [--timeline] [--no-carry] [--force]` | Start the UI (or register the video on a running instance) |
+| `open <video> [--port] [--no-open] [--share [tailscale]] [--share-ttl <h>] [--edl] [--timeline] [--no-carry] [--force]` | Start the UI (or register the video on a running instance) |
 | `watch <target> [--since n] [--tail] [--json\|--text] [--exit-on type]` | Stream review events, one per line |
 | `list <target> [--agent-status …] [--json]` | List comments; `--json` returns `{lastSeq, review, comments}` |
 | `show <target> <id> [--json]` | Show one comment |

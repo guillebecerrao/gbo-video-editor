@@ -35,6 +35,7 @@ import {
 import { InvalidVideoError, VideoChangedError, packageRoot, prepareReview } from "../server/index.js";
 import { formatCommentRow } from "./format.js";
 import { openCommand } from "./open.js";
+import { MAX_SHARE_TTL_HOURS, parseShareTtl } from "../server/share.js";
 import { parseActors, parseCursorName, parseEventType, watchReview } from "./watch.js";
 
 // ----------------------------------------------------------------- helpers ----
@@ -69,6 +70,19 @@ async function existingReviewDir(target: string): Promise<string> {
 
 const out = (text: string) => console.log(text);
 const printJson = (value: unknown) => out(JSON.stringify(value, null, 2));
+
+function shareArg(value: string): "tailscale" {
+  if (value !== "tailscale") throw new InvalidArgumentError("use `--share` (all private networks) or `--share tailscale`");
+  return value;
+}
+
+function ttlArg(value: string): number {
+  try {
+    return parseShareTtl(value);
+  } catch (e) {
+    throw new InvalidArgumentError((e as Error).message);
+  }
+}
 
 function intArg(name: string) {
   return (value: string): number => {
@@ -116,7 +130,14 @@ program
   .option("--no-carry", "do not carry comments over from the previous _vN version")
   .option("--force", "keep reviewing a video that changed after it was opened (re-adopts the file as it is now)")
   .option("--dev", "API only; the Vite dev server serves the UI")
-  .action(action((video: string, o) => openCommand(video, o)));
+  .option("--share [network]", "let another computer review with a private link: all private networks (Tailscale + home/office wifi), or `tailscale` for Tailscale only", shareArg)
+  .option("--share-ttl <hours>", `hours the share link stays valid (default 12, max ${MAX_SHARE_TTL_HOURS})`, ttlArg)
+  .action(
+    action((video: string, o) => {
+      if (o.shareTtl !== undefined && !o.share) throw new Error("--share-ttl needs --share");
+      return openCommand(video, { ...o, share: o.share === true ? "lan" : o.share });
+    }),
+  );
 
 program
   .command("watch")
