@@ -13,8 +13,8 @@
 |---|---|---|
 | Refinar | 1 | BL-014 · frameback-0-1-2-gif |
 | Listo | 1 | BL-001 · frameback-v0-1 |
-| En curso | 3 | BL-011 · frameback-watch-reanuda-desd; BL-012 · avisar-si-el-video-cambio; BL-013 · revisar-pr-1-externo-docker (bloqueado) |
-| Revisión | 8 | BL-002 · l1-servidor-http-cli-adaptad; BL-003 · l2-ui-web-player-regiones; BL-004 · l3-servidor-mcp-list-get; BL-005 · l4-kit-de-agente-skill; BL-006 · l5-integracion-opcional-en-g; BL-007 · revision-multi-agente-post-i; BL-008 · comentarios-traspasados-apun; BL-009 · comentarios-verificados-cola |
+| En curso | 1 | BL-013 · revisar-pr-1-externo-docker (bloqueado) |
+| Revisión | 10 | BL-002 · l1-servidor-http-cli-adaptad; BL-003 · l2-ui-web-player-regiones; BL-004 · l3-servidor-mcp-list-get; BL-005 · l4-kit-de-agente-skill; BL-006 · l5-integracion-opcional-en-g; BL-007 · revision-multi-agente-post-i; BL-008 · comentarios-traspasados-apun; BL-009 · comentarios-verificados-cola; BL-011 · frameback-watch-reanuda-desd; BL-012 · avisar-si-el-video-cambio |
 | Validar | 0 | — |
 | Validado | 0 | — |
 | Prod | 0 | — |
