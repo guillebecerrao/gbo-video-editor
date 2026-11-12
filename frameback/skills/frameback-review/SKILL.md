@@ -33,8 +33,9 @@ After you deliver a video (preview or final):
 1. Start the UI in the background (do not block on it): `frameback open <video> --no-open` if the user is not at the
    screen, otherwise `frameback open <video>`. Use `$FB` (see above) when `frameback` is not on PATH.
    **Reviewer on another computer** (they say they are on a different machine, laptop or Mac, or on wifi/Tailscale):
-   launch with `frameback open <video> --no-open --share tailscale` instead, and give them the printed
-   `http://…?key=…` link verbatim. Prefer `--share tailscale` whenever the reviewer is not on the same trusted network
+   launch with `frameback open <video> --no-open --share tailscale` instead, and give them ONLY the link printed under
+   "To review from another computer, open this link there" (verbatim). Do not paste the "Other addresses" unless it fails to
+   open; never hand over the `this Mac only` link. Prefer `--share tailscale` whenever the reviewer is not on the same trusted network
    (home/office): plain wifi is not encrypted. Use plain `--share` (also prints local-network links) only when they say
    they are on the same trusted wifi, or Tailscale is not available (the command says so). Warn them in one line that
    anyone with that link can watch, comment and submit, and that it expires in 12 h (`--share-ttl <hours>`, max 24) or

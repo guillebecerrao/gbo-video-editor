@@ -90,9 +90,11 @@ frameback open video.mp4 --share tailscale   # only over Tailscale (encrypted)
 frameback open video.mp4 --share             # Tailscale and your private wifi/LAN
 ```
 
-It prints the links, Tailscale first (`http://studio-mac.example.ts.net:4747/?key=…`, marked encrypted), then the local
-network ones (`http://studio-mac.local:4747/?key=…`, `http://192.168.1.20:4747/?key=…`, marked "trusted networks only").
-Open one on the other computer. The link contains a private key: whoever has it can watch, comment and submit the
+It prints one recommended link (`http://100.x.y.z:4747/?key=…`, the Tailscale IP, or your LAN IP when Tailscale is not
+running): open that one on the other computer. It does not depend on DNS. Below it come alternative addresses for the
+same review (the `*.ts.net` name, `studio-mac.local`), to try only if the first does not open. The link marked
+"this Mac only" has no key and works only on this computer.
+The recommended link contains a private key: whoever has it can watch, comment and submit the
 review, and nothing else (they cannot open other files or change the server). It expires after 12 hours
 (`--share-ttl <hours>`, max 24) or when you close the command. Plain wifi traffic is not encrypted: on a network you do
 not trust, use `--share tailscale`. See [SECURITY.md](SECURITY.md).
