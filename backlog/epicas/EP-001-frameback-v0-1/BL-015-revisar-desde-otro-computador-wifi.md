@@ -5,7 +5,7 @@ tipo: historia
 via: evidencia
 acepta: "Guillermo"
 padre: EP-001
-estado: aprobado
+estado: en-curso
 creado: 2026-11-12
 actualizado: 2026-11-12
 valor: {estrategico: null, urgencia: null, habilita: null}
@@ -14,7 +14,7 @@ riesgo: null          # bajo | medio | alto
 puntaje: null
 toca: ["frameback/src/server/app.ts", "frameback/src/server/index.ts", "frameback/src/cli/open.ts", "frameback/src/cli/index.ts", "frameback/skills/frameback-review/SKILL.md"]              # rutas o áreas reales del repo, entre comillas si llevan corchetes o paréntesis
 depende_de: []
-asignacion: {carril: null, agente: null, worktree: null, rama: null}
+asignacion: {carril: "1", agente: "bl015-share", worktree: "../gbo-video-editor-share-link", rama: "feat/share-link"}
 lote: null
 trazabilidad: {objetivo: null, origen: "pedido de Guillermo 2026-11-12: edita en un MacBook y revisa desde otro", evidencia: [], spec: null}   # objetivo: nodo OST u objetivo; spec: Iteration PRD (ciclo completo)
 retrabajos: 0
@@ -24,6 +24,7 @@ resultado: {senal: "Guillermo revisa sus ediciones desde el otro MacBook sin pas
 historial:
   - {estado: propuesto, fecha: 2026-11-12T14:22}
   - {estado: aprobado, fecha: 2026-11-12T14:25, por: "Guillermo (dueño de gbo-video, antes gbo-style)"}
+  - {estado: en-curso, fecha: 2026-11-12T14:25}
 ---
 
 ## Problema / intención
