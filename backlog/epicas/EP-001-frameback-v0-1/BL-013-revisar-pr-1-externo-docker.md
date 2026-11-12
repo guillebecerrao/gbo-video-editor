@@ -5,7 +5,7 @@ tipo: chore
 via: mantenimiento
 acepta: "Guillermo"
 padre: EP-001
-estado: propuesto
+estado: bloqueado-humano
 creado: 2026-11-12
 actualizado: 2026-11-12
 valor: {estrategico: null, urgencia: null, habilita: null}
@@ -23,6 +23,7 @@ release: null
 resultado: {senal: "ninguna: higiene", revisar: null, observado: null, experimento: null}   # experimento: EXP-NN (ciclo completo)
 historial:
   - {estado: propuesto, fecha: 2026-11-12T13:30}
+  - {estado: bloqueado-humano, fecha: 2026-11-12T13:38}
 ---
 
 # BL-013 · Revisar PR #1 externo: Docker + webhooks opcionales
@@ -50,3 +51,4 @@ PR #1 en el repo público, de un contribuidor externo: soporte Docker (Dockerfil
 ## Registro
 
 - 2026-11-12 — creado (PR externo en el repo público, 2026-11-12).
+- 2026-11-12 — borrador del comentario en `backlog/decisiones/PR-1-review-draft.md`. No se ejecutó el código del PR (bloqueado por política: código externo); falta verificarlo en local antes de mergear. Espera que Guillermo publique el comentario.
