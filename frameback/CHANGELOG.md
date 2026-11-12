@@ -21,6 +21,10 @@ versioning follows [SemVer](https://semver.org/).
 
 ### Changed
 - Links point to the renamed gbo-video-method repository.
+- Validation error texts (API 400 `error`, CLI and MCP messages) use zod 4 wording, e.g. `body: Invalid input: expected string, received undefined` instead of `body: Required`. The `path: message` format and what is accepted or rejected are unchanged.
+
+### Security
+- Upgrade zod to v4 (4.6.7) to fix GHSA-mrhx-c7xc-m3w5. The remaining advisories (vitest/vite/esbuild) are development-only and do not ship in the package.
 
 ## [0.1.1] - 2026-11-09
 
