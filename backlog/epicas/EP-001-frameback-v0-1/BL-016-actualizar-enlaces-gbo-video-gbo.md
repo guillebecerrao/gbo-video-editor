@@ -5,7 +5,7 @@ tipo: chore
 via: mantenimiento
 acepta: "Guillermo"
 padre: EP-001
-estado: propuesto
+estado: aprobado
 creado: 2026-11-12
 actualizado: 2026-11-12
 valor: {estrategico: null, urgencia: null, habilita: null}
@@ -23,6 +23,7 @@ release: null
 resultado: {senal: "ninguna: higiene", revisar: null, observado: null, experimento: null}   # experimento: EXP-NN (ciclo completo)
 historial:
   - {estado: propuesto, fecha: 2026-11-12T15:10}
+  - {estado: aprobado, fecha: 2026-11-12T15:30, por: "Guillermo (dueño de gbo-video, antes gbo-style)"}
 ---
 
 ## Problema / intención
