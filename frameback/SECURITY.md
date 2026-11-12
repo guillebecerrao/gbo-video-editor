@@ -32,8 +32,11 @@ How it is enforced:
   **and** that carries no `X-Forwarded-For`/`Forwarded` header skips the key. Anything else, including requests relayed by
   a reverse proxy on this machine (`tailscale serve`, nginx…), is treated as remote.
 - **Key.** A random key (192 bits, regenerated on every start) is part of the link and is the only credential:
-  `?key=` once (answered with an HttpOnly, SameSite=Strict cookie and a redirect that removes the key from the URL), then
-  the cookie. Keys are compared in constant time. The key is printed only on the command's stdout; it is never written to
+  `?key=` once (answered with an HttpOnly, SameSite=Lax cookie and a redirect that removes the key from the URL), then
+  the cookie. It is `Lax`, not `Strict`: a `Strict` cookie is not sent after a cross-site redirect, so a link opened from
+  messaging or email would get 401. State changes (POST/PATCH/PUT/DELETE) stay protected by the foreign-`Origin` check,
+  which browsers always send on cross-site writes, and the only remote GET with a side effect (`/media/:rid/next`) never
+  takes a path from the peer. Keys are compared in constant time. The key is printed only on the command's stdout; it is never written to
   `review/`, events or logs.
 - **Allowlist.** Remote requests may only reach the review routes listed in `src/server/share.ts` (`remoteAllowed`);
   everything else is 403. `GET /media/:rid/next` is allowed because it registers the path the local agent wrote in

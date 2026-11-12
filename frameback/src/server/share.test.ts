@@ -239,11 +239,27 @@ describe("S5 · the key expires", () => {
     expect(maxAge).toBeGreaterThan(12 * 3600 - 10);
     expect(maxAge).toBeLessThanOrEqual(12 * 3600);
     expect(cookie).toMatch(/HttpOnly/);
-    expect(cookie).toMatch(/SameSite=Strict/);
+    expect(cookie).toMatch(/SameSite=Lax/);
     expect(res.headers.location).toBe("/");
     expect(parseShareTtl("0.5")).toBe(0.5);
     expect(parseShareTtl("24")).toBe(24);
     for (const bad of ["25", "0", "-1", "abc"]) expect(() => parseShareTtl(bad)).toThrow();
+  });
+});
+
+describe("S5b · link opened from another site", () => {
+  it("cross-site click: redirect with a Lax cookie, then the follow-up request gets 200; cross-site writes stay 403", async () => {
+    const s = await start();
+    const hdr = { Host: TS_NAME, "Sec-Fetch-Site": "cross-site", "Sec-Fetch-Mode": "navigate" };
+    const first = await raw(s.port, `/?key=${s.share!.key}`, hdr);
+    expect(first.status).toBe(302);
+    const cookie = String(first.headers["set-cookie"]);
+    expect(cookie).toMatch(/SameSite=Lax/);
+    expect(cookie).not.toMatch(/Strict/);
+    const next = await raw(s.port, String(first.headers.location), { Host: TS_NAME, Cookie: cookie.split(";")[0], "Sec-Fetch-Site": "cross-site" });
+    expect(next.status).toBe(200);
+    const write = await raw(s.port, "/api/reviews/x/submit", { Host: TS_NAME, Cookie: cookie.split(";")[0], Origin: "http://evil.example.com" }, { method: "POST" });
+    expect(write.status).toBe(403);
   });
 });
 
