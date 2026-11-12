@@ -13,9 +13,9 @@
 |---|---|---|
 | Refinar | 1 | BL-017 · revisar-pr-2-externo-webhook |
 | Listo | 1 | BL-001 · frameback-v0-1 |
-| En curso | 2 | BL-013 · revisar-pr-1-externo-docker (bloqueado); BL-018 · revisar-las-7-vulnerabilidad |
+| En curso | 1 | BL-013 · revisar-pr-1-externo-docker (bloqueado) |
 | Revisión | 8 | BL-002 · l1-servidor-http-cli-adaptad; BL-003 · l2-ui-web-player-regiones; BL-004 · l3-servidor-mcp-list-get; BL-005 · l4-kit-de-agente-skill; BL-006 · l5-integracion-opcional-en-g; BL-007 · revision-multi-agente-post-i; BL-008 · comentarios-traspasados-apun; BL-009 · comentarios-verificados-cola |
-| Validar | 4 | BL-011 · frameback-watch-reanuda-desd; BL-012 · avisar-si-el-video-cambio; BL-015 · revisar-desde-otro-computado; BL-016 · actualizar-enlaces-gbo-video |
+| Validar | 5 | BL-011 · frameback-watch-reanuda-desd; BL-012 · avisar-si-el-video-cambio; BL-015 · revisar-desde-otro-computado; BL-016 · actualizar-enlaces-gbo-video; BL-018 · revisar-las-7-vulnerabilidad |
 | Validado | 0 | — |
 | Prod | 0 | — |
 | Ideas | 2 | ver `items/` |
