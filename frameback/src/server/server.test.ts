@@ -76,6 +76,26 @@ describe("registration", () => {
   });
 });
 
+describe("video changed under the same path", () => {
+  it("exposes the state, refuses re-registering without force and re-adopts with force", async () => {
+    const v = path.join(tmp, "swap_v1.mp4");
+    await fs.writeFile(v, Buffer.alloc(500, 1));
+    const rid = ((await (await api("/api/reviews", { method: "POST", json: { video: v } })).json()) as ReviewSummary).rid;
+    const status = () => getJson<{ changed: boolean }>(`/api/reviews/${rid}/video-status`);
+    expect((await status()).changed).toBe(false);
+    await fs.writeFile(v, Buffer.alloc(600, 2));
+    expect((await status()).changed).toBe(true);
+    expect((await getJson<{ videoStatus: { changed: boolean } }>(`/api/reviews/${rid}`)).videoStatus.changed).toBe(true);
+    const refused = await api("/api/reviews", { method: "POST", json: { video: v } });
+    expect(refused.status).toBe(409);
+    expect(await refused.json()).toMatchObject({ code: "video_changed", error: expect.stringContaining("swap_v2.mp4") });
+    const forced = await api("/api/reviews", { method: "POST", json: { video: v, force: true } });
+    expect(forced.status).toBe(200);
+    expect(((await forced.json()) as { warnings: string[] }).warnings.join()).toMatch(/re-adopted/);
+    expect((await status()).changed).toBe(false);
+  });
+});
+
 describe("comments lifecycle", () => {
   let id: string;
 

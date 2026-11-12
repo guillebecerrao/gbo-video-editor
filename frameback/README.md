@@ -185,7 +185,7 @@ Run `frameback <command> --help` for every option. Targets (`<target>`) are a vi
 
 | Command | Purpose |
 |---------|---------|
-| `open <video> [--port] [--no-open] [--edl] [--timeline] [--no-carry]` | Start the UI (or register the video on a running instance) |
+| `open <video> [--port] [--no-open] [--edl] [--timeline] [--no-carry] [--force]` | Start the UI (or register the video on a running instance) |
 | `watch <target> [--since n] [--tail] [--json\|--text] [--exit-on type]` | Stream review events, one per line |
 | `list <target> [--agent-status …] [--json]` | List comments; `--json` returns `{lastSeq, review, comments}` |
 | `show <target> <id> [--json]` | Show one comment |

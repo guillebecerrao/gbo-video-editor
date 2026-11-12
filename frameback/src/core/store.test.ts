@@ -118,4 +118,55 @@ describe("store", () => {
     const c = await S.createComment(dir, nc("after stale"));
     expect(c.id).toBe("c-0001");
   });
+
+  describe("video fingerprint", () => {
+    it("is stored when the review is created and a plain reopen reports no change", async () => {
+      const { dir, review } = await S.openReview(video);
+      expect(review.video.fingerprint).toMatchObject({ size: 1 });
+      expect((await S.checkVideo(dir)).changed).toBe(false);
+    });
+
+    it("a touch (new mtime, same bytes) is not a change", async () => {
+      const { dir } = await S.openReview(video);
+      const future = new Date(Date.now() + 60_000);
+      await fs.utimes(video, future, future);
+      expect((await S.checkVideo(dir)).changed).toBe(false);
+    });
+
+    it("detects different size and different edge bytes at the same size", async () => {
+      await fs.writeFile(video, Buffer.alloc(300_000, 1));
+      const { dir } = await S.openReview(video);
+      await fs.writeFile(video, Buffer.alloc(300_000, 2)); // same size, other content
+      expect((await S.checkVideo(dir)).changed).toBe(true);
+      await fs.writeFile(video, Buffer.alloc(300_001, 1)); // other size
+      expect((await S.checkVideo(dir)).changed).toBe(true);
+    });
+
+    it("a review without a fingerprint adopts the current file silently", async () => {
+      const { dir, review } = await S.openReview(video);
+      const legacy = { ...review, video: { ...review.video, fingerprint: undefined } };
+      await fs.writeFile(path.join(dir, "review.json"), JSON.stringify(legacy));
+      await fs.writeFile(video, "a different, longer video");
+      const status = await S.checkVideo(dir);
+      expect(status.changed).toBe(false);
+      expect((await S.readReview(dir)).video.fingerprint).toMatchObject({ size: 25 });
+      expect((await S.readEvents(dir)).map((e) => e.type)).toEqual(["review.opened"]);
+    });
+
+    it("adoptVideo re-adopts the file and records review.video_adopted", async () => {
+      const { dir } = await S.openReview(video);
+      await fs.writeFile(video, "changed!");
+      expect((await S.checkVideo(dir)).changed).toBe(true);
+      await S.adoptVideo(dir);
+      expect((await S.checkVideo(dir)).changed).toBe(false);
+      const evs = await S.readEvents(dir);
+      expect(evs.at(-1)).toMatchObject({ type: "review.video_adopted", actor: "human" });
+    });
+
+    it("a missing file is not reported as changed", async () => {
+      const { dir } = await S.openReview(video);
+      await fs.rm(video);
+      expect(await S.checkVideo(dir)).toMatchObject({ changed: false, current: null });
+    });
+  });
 });

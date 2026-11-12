@@ -8,7 +8,7 @@ import { Registry } from "./registry.js";
 
 export { Registry } from "./registry.js";
 export type { RegistryEntry } from "./registry.js";
-export { assertVideoFile, prepareReview, splitVersion, InvalidVideoError } from "./prepare.js";
+export { assertVideoFile, prepareReview, splitVersion, InvalidVideoError, VideoChangedError } from "./prepare.js";
 
 export interface StartServerOptions {
   /** 0 = ephemeral */

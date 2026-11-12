@@ -8,7 +8,9 @@
  *  - events.ndjson is append-only with a monotonically increasing `seq` (starting at 1)
  */
 import { promises as fs, constants as fsc } from "node:fs";
+import { createHash } from "node:crypto";
 import path from "node:path";
+import type { VideoStatus } from "./api.js";
 import { remapAnchor } from "./remap.js";
 import {
   SCHEMA_VERSION,
@@ -24,6 +26,7 @@ import {
   type HumanStatus,
   type ReviewState,
   type Timeline,
+  type VideoFingerprint,
   type VideoInfo,
 } from "./schema.js";
 
@@ -322,6 +325,7 @@ export async function openReview(videoPath: string, opts: OpenReviewOptions = {}
         fps: opts.videoInfo?.fps ?? null,
         width: opts.videoInfo?.width ?? null,
         height: opts.videoInfo?.height ?? null,
+        fingerprint: await fingerprintVideo(videoPath).catch(() => null),
       },
       timeline: timelineRef,
       state: "reviewing",
@@ -341,6 +345,66 @@ export async function openReview(videoPath: string, opts: OpenReviewOptions = {}
       data: { video: review.video.file },
     });
     return { dir, review, created: true };
+  });
+}
+
+// ------------------------------------------------------------ fingerprint ----
+
+const FINGERPRINT_CHUNK = 64 * 1024;
+
+/** size + mtime + a hash of the first and last 64 KB: cheap even for multi-GB files. */
+export async function fingerprintVideo(file: string): Promise<VideoFingerprint> {
+  const fh = await fs.open(file, "r");
+  try {
+    const st = await fh.stat();
+    const hash = createHash("sha1");
+    const buf = Buffer.alloc(FINGERPRINT_CHUNK);
+    const head = await fh.read(buf, 0, FINGERPRINT_CHUNK, 0);
+    hash.update(buf.subarray(0, head.bytesRead));
+    if (st.size > FINGERPRINT_CHUNK) {
+      const start = Math.max(FINGERPRINT_CHUNK, st.size - FINGERPRINT_CHUNK);
+      const tail = await fh.read(buf, 0, FINGERPRINT_CHUNK, start);
+      hash.update(buf.subarray(0, tail.bytesRead));
+    }
+    return { size: st.size, mtimeMs: Math.round(st.mtimeMs), hash: hash.digest("hex") };
+  } finally {
+    await fh.close();
+  }
+}
+
+/** Same content as far as the fingerprint can tell. A different mtime alone (e.g. `touch`) is not a change. */
+export function sameVideo(a: VideoFingerprint, b: VideoFingerprint): boolean {
+  return a.size === b.size && a.hash === b.hash;
+}
+
+/**
+ * Compare the video on disk with the fingerprint saved when the review was opened. A review without a
+ * fingerprint (made before this existed) adopts the current file silently. A missing file is not a change.
+ */
+export async function checkVideo(reviewDir: string): Promise<VideoStatus> {
+  const review = await readReview(reviewDir);
+  const current = await fingerprintVideo(fromReview(reviewDir, review.video.file)).catch(() => null);
+  const stored = review.video.fingerprint ?? null;
+  if (!stored) {
+    if (current) await withLock(reviewDir, async () => {
+      const r = await readReview(reviewDir);
+      if (!r.video.fingerprint) await atomicWriteJson(p.review(reviewDir), { ...r, video: { ...r.video, fingerprint: current }, updatedAt: now() });
+    });
+    return { changed: false, stored: current, current };
+  }
+  return { changed: Boolean(current && !sameVideo(stored, current)), stored, current };
+}
+
+/** Accept the video as it is now (explicit `open --force`); recorded as `review.video_adopted`. */
+export async function adoptVideo(reviewDir: string, actor: Actor = "human"): Promise<Review> {
+  return withLock(reviewDir, async () => {
+    const r = await readReview(reviewDir);
+    const current = await fingerprintVideo(fromReview(reviewDir, r.video.file));
+    const previous = r.video.fingerprint ?? null;
+    const next: Review = { ...r, video: { ...r.video, fingerprint: current }, updatedAt: now() };
+    await atomicWriteJson(p.review(reviewDir), next);
+    await appendEventLocked(reviewDir, { type: "review.video_adopted", review: r.id, actor, data: { previous, current } });
+    return next;
   });
 }
 

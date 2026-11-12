@@ -174,3 +174,24 @@ describe("agent commands", () => {
     else expect(r.stderr).toMatch(/skill files not found/);
   });
 });
+
+describe("frameback open on a video that changed", () => {
+  it("refuses with a _v(N+1) suggestion, and --force re-adopts the new file", async () => {
+    await S.openReview(video);
+    await fs.writeFile(video, "a re-rendered cut with other bytes");
+    const refused = run("open", video, "--no-open", "--port", "0");
+    expect(refused.status).toBe(1);
+    expect(refused.stderr).toMatch(/changed after it was opened/);
+    expect(refused.stderr).toMatch(/cut_v2\.mp4/);
+    expect(refused.stderr).toMatch(/--force/);
+
+    const forced = start("open", video, "--no-open", "--force", "--port", "0");
+    await forced.waitFor(() => /Review dir:/.test(forced.out()));
+    expect(forced.err()).toMatch(/re-adopted/);
+    forced.child.kill("SIGTERM");
+    await forced.exited;
+    const dir = S.reviewDirForVideo(video);
+    expect((await S.checkVideo(dir)).changed).toBe(false);
+    expect((await S.readEvents(dir)).map((e) => e.type)).toContain("review.video_adopted");
+  });
+});

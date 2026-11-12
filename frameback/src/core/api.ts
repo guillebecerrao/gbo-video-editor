@@ -9,6 +9,7 @@
  *  GET    /api/reviews                             -> ReviewSummary[]            (registered reviews)
  *  POST   /api/reviews        RegisterReviewRequest -> RegisterReviewResponse            (register another video; used by a 2nd `frameback open`)
  *  GET    /api/reviews/:rid                        -> ReviewBundle
+ *  GET    /api/reviews/:rid/video-status           -> VideoStatus                (has the file changed since it was opened?)
  *  GET    /api/reviews/:rid/timeline               -> Timeline | null
  *  GET    /api/reviews/:rid/comments               -> Comment[]                  (non-deleted)
  *  GET    /api/reviews/:rid/comments/:id           -> Comment
@@ -33,9 +34,16 @@
  *
  * Security: bind 127.0.0.1 only; never serve paths that were not registered; ids validated by regex.
  */
-import type { Comment, Review, Timeline, VideoInfo, HumanStatus, CommentPatch, NewComment, Event } from "./schema.js";
+import type { Comment, Review, Timeline, VideoInfo, VideoFingerprint, HumanStatus, CommentPatch, NewComment, Event } from "./schema.js";
 
 export type { Comment, Review, Timeline, VideoInfo, HumanStatus, CommentPatch, NewComment, Event };
+
+export interface VideoStatus {
+  /** the file under the review's video path no longer matches what was opened */
+  changed: boolean;
+  stored: VideoFingerprint | null;
+  current: VideoFingerprint | null;
+}
 
 export interface Health {
   app: "frameback";
@@ -71,6 +79,8 @@ export interface ReviewBundle {
   versions: { name: string; rid: string | null; isCurrent: boolean }[];
   /** set when review.nextVideo exists */
   next: { name: string; url: string } | null;
+  /** has the video file changed since the review was opened? `changed: true` => comment times may not match */
+  videoStatus: VideoStatus;
 }
 
 export interface Waveform {
@@ -88,6 +98,8 @@ export interface RegisterReviewRequest {
   timeline?: string;
   /** false disables carrying comments over from the previous `_vN` version (default true) */
   carry?: boolean;
+  /** accept a video that changed since it was opened (`frameback open --force`) */
+  force?: boolean;
 }
 
 export interface CreateCommentRequest {

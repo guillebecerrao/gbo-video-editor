@@ -28,7 +28,8 @@ lock with `seq = last seq + 1` (starting at 1).
   "schemaVersion": 1,
   "id": "final_v2",              // = stem
   "video": { "file": "../../final_v2.mp4",  // relative to the review dir
-             "duration": 2412.48, "fps": 24, "width": 1920, "height": 1080 },   // filled when known
+             "duration": 2412.48, "fps": 24, "width": 1920, "height": 1080,   // filled when known
+             "fingerprint": { "size": 81920000, "mtimeMs": 1794200000000, "hash": "<sha1 of first+last 64 KB>" } },  // optional; set on open
   "timeline": { "file": "../../final_v2.timeline.json" } ,              // optional; or null
   "state": "reviewing",                   // reviewing | submitted | processing | delivered | closed
   "round": 1,                             // incremented when a submitted review is reopened
@@ -109,6 +110,7 @@ Every line: `{ "seq": 12, "at": "ISO", "type": "<type>", "review": "<stem>", "co
 | `comment.agent_status` | agent | status / plan / reply change | `{ status }` |
 | `thread.message` | human\|agent | message appended | `{ author }` |
 | `review.submitted` | human | **Process review** pressed | `{ counts: { total, open, … } }` |
+| `review.video_adopted` | human | `frameback open --force` accepted a video that changed after it was opened | `{ previous, current }` (fingerprints) |
 | `review.state` | agent\|human | processing / delivered / closed (agent); reviewing after reopen (human, `reopened: true`, `round`) | `{ state, nextVideo?, reopened?, round? }` |
 
 ## 5. Agent interface
@@ -191,6 +193,12 @@ reviewing --(human: Process review)--> submitted --(agent)--> processing --(agen
   records `origin`, `sourceFile`, `sourceMtime`, `approximate` and `warnings` (e.g. EDL newer than the video, or
   EDL-derived duration differs from the video by > 0.5 s). Staging edits to the EDL never move the timeline under
   a review. Entity anchors copy the item's times, so they stay meaningful even if ids change later.
+
+**Never overwrite a video that is under review.** The review is anchored to the exact cut that was opened. When the
+file under `video.file` no longer matches `video.fingerprint` (size or edge hash; a bare mtime change is ignored), the UI
+shows a persistent warning, `GET /api/reviews/:rid/video-status` and the bundle's `videoStatus` report `changed: true`,
+and `frameback open` refuses (HTTP 409, `code: "video_changed"`) unless `--force` is given. Deliver a new cut as the next
+version (`_v(N+1)`) instead. A review without a fingerprint adopts the current file silently.
 
 **Regions** are normalized to the encoded video frame (letterbox excluded), origin top-left.
 

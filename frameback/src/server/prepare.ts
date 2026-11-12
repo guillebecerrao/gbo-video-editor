@@ -4,6 +4,8 @@ import path from "node:path";
 import {
   carryComments,
   findBinary,
+  adoptVideo,
+  checkVideo,
   openReview,
   probeVideo,
   resolveTimeline,
@@ -20,6 +22,8 @@ export interface PrepareOptions {
   edlPath?: string;
   /** carry comments over from the previous version when this review is new (default true) */
   carry?: boolean;
+  /** accept a video that changed since it was opened for review (`frameback open --force`) */
+  force?: boolean;
   /** review dir to carry from (e.g. the review whose `nextVideo` is this video); default: auto-detected */
   carryFrom?: string;
 }
@@ -35,6 +39,17 @@ export interface PreparedReview {
 }
 
 export class InvalidVideoError extends Error {}
+
+/** The file under an open review was replaced: its comments point at a cut that no longer exists. */
+export class VideoChangedError extends Error {}
+
+/** `final` -> `final_v2`, `final_v3` -> `final_v4` */
+export function nextVersionName(file: string): string {
+  const ext = path.extname(file);
+  const stem = path.basename(file, ext);
+  const v = splitVersion(stem);
+  return v ? `${v.base}_v${v.n + 1}${ext}` : `${stem}_v2${ext}`;
+}
 
 /** `final_v3` -> { base: "final", n: 3 } */
 export function splitVersion(stem: string): { base: string; n: number } | null {
@@ -108,8 +123,22 @@ export async function prepareReview(videoPath: string, opts: PrepareOptions = {}
       : await resolveTimeline(video, { timelinePath: opts.timelinePath, edlPath: opts.edlPath, videoDuration: videoInfo?.duration });
 
   const { dir, review, created } = await openReview(video, { videoInfo, timeline, refreshTimeline: explicitTimeline });
-  let carried = 0;
   let current = review;
+  const warnings: string[] = [];
+  if (!created) {
+    const status = await checkVideo(dir);
+    if (status.changed) {
+      if (!opts.force) {
+        throw new VideoChangedError(
+          `${path.basename(video)} changed after it was opened for review, so its comments may no longer match the video. ` +
+            `Render the new cut as ${nextVersionName(video)} and open that instead, or re-run with --force to keep reviewing this file as it is now.`,
+        );
+      }
+      current = await adoptVideo(dir);
+      warnings.push(`${path.basename(video)} changed since it was opened; re-adopted the current file (--force). Existing comments may not match the new cut.`);
+    }
+  }
+  let carried = 0;
   if (created && opts.carry !== false) {
     const previousDir =
       opts.carryFrom && path.resolve(opts.carryFrom) !== dir ? opts.carryFrom : await findPreviousReviewDir(dir, video);
@@ -118,5 +147,5 @@ export async function prepareReview(videoPath: string, opts: PrepareOptions = {}
       current = await readReview(dir); // carryComments records `previous`
     }
   }
-  return { dir, review: current, created, carried, warnings: [...(current.timeline?.warnings ?? []), ...extra] };
+  return { dir, review: current, created, carried, warnings: [...(current.timeline?.warnings ?? []), ...extra, ...warnings] };
 }

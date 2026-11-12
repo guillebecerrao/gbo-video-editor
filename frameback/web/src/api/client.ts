@@ -1,6 +1,6 @@
 /** Thin typed wrapper over the HTTP contract in src/core/api.ts. */
 import type {
-  Comment, CommentPatch, CreateCommentRequest, HumanStatus, Review, ReviewBundle, ReviewSummary, VideoInfo, Waveform,
+  Comment, CommentPatch, CreateCommentRequest, HumanStatus, Review, ReviewBundle, ReviewSummary, VideoInfo, VideoStatus, Waveform,
 } from "@core/api";
 
 export class ApiError extends Error {
@@ -39,6 +39,7 @@ const c = (rid: string, id: string) => `${r(rid)}/comments/${id}`;
 export const api = {
   listReviews: () => request<ReviewSummary[]>("GET", "/api/reviews"),
   bundle: (rid: string) => request<ReviewBundle>("GET", r(rid)),
+  videoStatus: (rid: string) => request<VideoStatus>("GET", `${r(rid)}/video-status`),
   comments: (rid: string) => request<Comment[]>("GET", `${r(rid)}/comments`),
   createComment: (rid: string, body: CreateCommentRequest) => request<Comment>("POST", `${r(rid)}/comments`, body),
   patchComment: (rid: string, id: string, patch: CommentPatch) => request<Comment>("PATCH", c(rid, id), patch),

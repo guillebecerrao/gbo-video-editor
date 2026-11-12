@@ -21,6 +21,7 @@ import {
   p,
   readComment,
   readReview,
+  checkVideo,
   readTimeline,
   reopenReview,
   setHumanStatus,
@@ -35,7 +36,7 @@ import {
   type ReviewSummary,
   type Waveform,
 } from "../core/index.js";
-import { InvalidVideoError, VIDEO_EXTENSIONS, splitVersion } from "./prepare.js";
+import { InvalidVideoError, VideoChangedError, VIDEO_EXTENSIONS, splitVersion } from "./prepare.js";
 import type { Registry, RegistryEntry } from "./registry.js";
 import { streamEvents } from "./sse.js";
 
@@ -67,10 +68,11 @@ const RegisterBody = z.object({
   edl: z.string().optional(),
   timeline: z.string().optional(),
   carry: z.boolean().optional(),
+  force: z.boolean().optional(),
 });
 const StatusBody = z.object({ status: HumanStatus });
 const ThreadBody = z.object({ text: z.string().min(1) });
-const VideoInfoBody = VideoInfo.omit({ file: true }).partial();
+const VideoInfoBody = VideoInfo.omit({ file: true, fingerprint: true }).partial();
 
 type Handler = (req: Request, res: Response) => Promise<unknown> | unknown;
 const route = (fn: Handler): RequestHandler => (req, res, next) => {
@@ -138,7 +140,7 @@ export function createApp(opts: AppOptions): express.Express {
 
   app.post("/api/reviews", json, route(async (req, res) => {
     const body = RegisterBody.parse(req.body);
-    const { entry, prepared } = await registry.register(body.video, { edlPath: body.edl, timelinePath: body.timeline, carry: body.carry });
+    const { entry, prepared } = await registry.register(body.video, { edlPath: body.edl, timelinePath: body.timeline, carry: body.carry, force: body.force });
     const response: RegisterReviewResponse = { ...(await summary(entry)), carried: prepared.carried, warnings: prepared.warnings };
     res.json(response);
   }));
@@ -161,8 +163,13 @@ export function createApp(opts: AppOptions): express.Express {
       lastSeq: seq,
       versions: await listVersions(entry, registry),
       next: await nextOf(entry, review.nextVideo),
+      videoStatus: await checkVideo(entry.reviewDir),
     };
     res.json(bundle);
+  }));
+
+  app.get("/api/reviews/:rid/video-status", route(async (req, res) => {
+    res.json(await checkVideo(entryOf(req).reviewDir));
   }));
 
   app.get("/api/reviews/:rid/timeline", route(async (req, res) => {
@@ -320,6 +327,7 @@ function toHttpError(err: unknown): { status: number; body: { error: string; cod
     const status = err.code === "not_found" ? 404 : err.code === "conflict" ? 409 : 400;
     return { status, body: { error: err.message, code: err.code } };
   }
+  if (err instanceof VideoChangedError) return { status: 409, body: { error: err.message, code: "video_changed" } };
   if (err instanceof InvalidVideoError) return { status: 400, body: { error: err.message, code: "invalid" } };
   if (err instanceof ZodError) {
     const issue = err.issues[0];

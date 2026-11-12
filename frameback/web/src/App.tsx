@@ -365,6 +365,14 @@ function ReviewView({ rid, bundle, review, comments, live, api: store }: ViewPro
   return (
     <div className="app">
       <TopBar bundle={bundle} review={review} comments={comments} live={live} onProcess={() => setShowProcess(true)} onHelp={() => setShowHelp(true)} />
+      {bundle.videoStatus?.changed && (
+        <div className="banner warn" role="alert">
+          <span>
+            <strong>This video changed after you opened it.</strong> The file was replaced under the same name, so the times of your comments may not match what you now see.
+            Ask for the new cut as a new version (<code>_v2</code>…) instead of overwriting.
+          </span>
+        </div>
+      )}
       <Banner rid={rid} review={review} bundle={bundle} onReopen={reopen} />
       <main className="main">
         <Player

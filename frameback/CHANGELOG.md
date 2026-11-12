@@ -5,6 +5,9 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+### Added
+- Video fingerprint (size, mtime, edge hash) saved when a review is opened. If the file is overwritten under the same name, the UI shows a persistent warning, `/api/reviews/:rid/video-status` reports it, and `frameback open` refuses with a `_v(N+1)` suggestion unless `--force` (recorded as `review.video_adopted`). Optional `video.fingerprint` in `review.json`; reviews without it adopt the current file silently.
+
 ## [0.1.1] - 2026-11-09
 
 ### Changed

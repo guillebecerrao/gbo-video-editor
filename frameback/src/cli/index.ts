@@ -32,7 +32,7 @@ import {
   type Comment,
   type Timeline,
 } from "../core/index.js";
-import { InvalidVideoError, packageRoot, prepareReview } from "../server/index.js";
+import { InvalidVideoError, VideoChangedError, packageRoot, prepareReview } from "../server/index.js";
 import { formatCommentRow } from "./format.js";
 import { openCommand } from "./open.js";
 import { parseActors, parseEventType, watchReview } from "./watch.js";
@@ -41,7 +41,7 @@ import { parseActors, parseEventType, watchReview } from "./watch.js";
 
 function describeError(e: unknown): string {
   if (e instanceof ZodError) return e.issues.map((i) => `${i.path.join(".") || "input"}: ${i.message}`).join("; ");
-  if (e instanceof StoreError || e instanceof InvalidVideoError) return e.message;
+  if (e instanceof StoreError || e instanceof InvalidVideoError || e instanceof VideoChangedError) return e.message;
   const err = e as NodeJS.ErrnoException;
   if (err?.code === "ENOENT") return `file not found: ${err.path ?? ""}`.trim();
   return err instanceof Error ? err.message : String(e);
@@ -114,6 +114,7 @@ program
   .option("--edl <path>", "edl.json to build the timeline from")
   .option("--timeline <path>", "Frameback timeline sidecar")
   .option("--no-carry", "do not carry comments over from the previous _vN version")
+  .option("--force", "keep reviewing a video that changed after it was opened (re-adopts the file as it is now)")
   .option("--dev", "API only; the Vite dev server serves the UI")
   .action(action((video: string, o) => openCommand(video, o)));
 

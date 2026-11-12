@@ -168,6 +168,7 @@ a.menu-item:hover { background: var(--bg-4); }
   border-bottom: 1px solid var(--line);
 }
 .banner.info { background: rgba(242, 184, 75, 0.09); color: #f6d58f; }
+.banner.warn { background: rgba(240, 98, 98, 0.12); color: #f5a3a3; }
 .banner.success { background: rgba(76, 195, 138, 0.1); color: #8be0b8; }
 .banner > span:not(.spinner) { flex: 1; }
 .banner a.btn { text-decoration: none; }

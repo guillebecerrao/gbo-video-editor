@@ -19,6 +19,7 @@ export interface ReviewApi {
 }
 
 const REFRESH_DEBOUNCE_MS = 80;
+const VIDEO_CHECK_MS = 10_000;
 
 export function useReview(rid: string): ReviewApi {
   const [data, setData] = useState<ReviewData>({ status: "loading" });
@@ -78,7 +79,20 @@ export function useReview(rid: string): ReviewApi {
       },
     );
 
+    // The file can change without any event: poll cheaply and re-check when the tab regains focus.
+    const checkVideo = async () => {
+      try {
+        const videoStatus = await api.videoStatus(rid);
+        if (!cancelled) setData((d) => (d.status === "ready" && d.bundle.videoStatus?.changed !== videoStatus.changed
+          ? { ...d, bundle: { ...d.bundle, videoStatus } } : d));
+      } catch { /* the next tick tries again */ }
+    };
+    const videoTimer = setInterval(checkVideo, VIDEO_CHECK_MS);
+    window.addEventListener("focus", checkVideo);
+
     return () => {
+      clearInterval(videoTimer);
+      window.removeEventListener("focus", checkVideo);
       cancelled = true;
       clearTimeout(commentsTimer);
       clearTimeout(bundleTimer);

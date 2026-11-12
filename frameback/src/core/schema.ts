@@ -31,6 +31,7 @@ export const EVENT_TYPES = [
   "thread.message",
   "review.submitted",
   "review.state",
+  "review.video_adopted",
 ] as const;
 
 export const Category = z.enum(CATEGORIES);
@@ -157,8 +158,18 @@ export const AgentPatch = z.object({
 
 // --------------------------------------------------------------- review ----
 
+/** Cheap identity of the video file at the moment it was (re)adopted for review. Optional: older reviews have none. */
+export const VideoFingerprint = z.object({
+  size: z.number().int().nonnegative(),
+  mtimeMs: z.number().finite(),
+  /** sha1 of the first and last 64 KB (the whole file when smaller) */
+  hash: z.string(),
+});
+
 export const VideoInfo = z.object({
   file: z.string(), // relative to the review dir
+  /** set by the store when the review is created; absent in reviews made before it existed (adopted silently) */
+  fingerprint: VideoFingerprint.nullable().optional(),
   duration: Seconds.nullable().optional(),
   fps: z.number().positive().nullable().optional(),
   width: z.number().int().positive().nullable().optional(),
@@ -247,6 +258,7 @@ export type Comment = z.infer<typeof Comment>;
 export type NewComment = z.input<typeof NewComment>;
 export type CommentPatch = z.infer<typeof CommentPatch>;
 export type AgentPatch = z.infer<typeof AgentPatch>;
+export type VideoFingerprint = z.infer<typeof VideoFingerprint>;
 export type VideoInfo = z.infer<typeof VideoInfo>;
 export type Review = z.infer<typeof Review>;
 export type Event = z.infer<typeof Event>;

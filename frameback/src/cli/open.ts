@@ -11,6 +11,7 @@ export interface OpenCommandOptions {
   edl?: string;
   timeline?: string;
   carry: boolean;
+  force?: boolean;
   dev?: boolean;
 }
 
@@ -70,6 +71,7 @@ export async function openCommand(videoArg: string, opts: OpenCommandOptions): P
     edl: opts.edl ? path.resolve(opts.edl) : undefined,
     timeline: opts.timeline ? path.resolve(opts.timeline) : undefined,
     carry: opts.carry,
+    force: opts.force,
   };
 
   for (let port = opts.port; port <= opts.port + PORT_SPAN; port++) {
@@ -97,7 +99,7 @@ export async function openCommand(videoArg: string, opts: OpenCommandOptions): P
       }
       let result;
       try {
-        result = await server.registry.register(video, { edlPath: request.edl, timelinePath: request.timeline, carry: opts.carry });
+        result = await server.registry.register(video, { edlPath: request.edl, timelinePath: request.timeline, carry: opts.carry, force: opts.force });
       } catch (e) {
         await server.close(); // never leave an empty server (and a taken port) behind
         throw e;

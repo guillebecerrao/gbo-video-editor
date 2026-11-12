@@ -77,7 +77,9 @@ Other events:
 1. `frameback review <video> --state processing`.
 2. `frameback export <video>` (or `list --json`) to get the final set. Finish everything still `pending`,
    `acknowledged`, `in_progress` or `needs_info` without an answer (state the assumption in the `--reply`).
-3. Render **once**, from the staging description, to the next versioned file (`..._v2.mp4`, never overwrite).
+3. Render **once**, from the staging description, to the next versioned file (`..._v2.mp4`). Never overwrite a file that is
+   under review, not even a preview: the reviewer's comments are anchored to that exact cut. Frameback warns the reviewer
+   and `frameback open` refuses (without `--force`) when the file changed; a new cut is always a new `_v(N+1)` file.
    Prefer cheap previews to check risky edits before the full render.
 4. Mark each handled comment: `frameback update <video> <id> --status applied --applied-in <next stem>`.
 5. `frameback review <video> --state delivered --next-video <next video path>`.
