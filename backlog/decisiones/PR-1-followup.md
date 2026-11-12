@@ -1,4 +1,4 @@
-# Seguimiento del PR #1 — comentario (lo publica un agente por orden de Guillermo, 2026-11-12)
+# OBSOLETO — no publicar. Felipe ya separó el webhook (PR #2) y aplicó los ajustes.
 
 ---
 
