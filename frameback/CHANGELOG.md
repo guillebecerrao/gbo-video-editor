@@ -5,6 +5,8 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [Unreleased]
 
+## [0.1.2] - YYYY-MM-DD
+
 ### Added
 - `frameback open <video> --share [tailscale]`: review from another computer over Tailscale or a private wifi/LAN. Whoever has the printed link can **review** (watch, comment, edit/delete comments and threads, submit, reopen) and nothing else.
   - The link carries a random per-process key; the first visit stores it in an HttpOnly, SameSite=Strict cookie (`Max-Age` = remaining TTL) and redirects to the URL without it. It expires after 12 h (`--share-ttl <hours>`, max 24): then other computers get 401 and a notice is printed on stderr, while localhost keeps working.
@@ -15,6 +17,7 @@ versioning follows [SemVer](https://semver.org/).
   - 20 failed key attempts per minute from one address answer 429.
   - Without `--share` nothing changes. If a server is already running without `--share` (or with another network mode, or an expired link), `open --share` asks you to restart it; otherwise it prints that server's links.
 - Video fingerprint (size, mtime, edge hash) saved when a review is opened. If the file is overwritten under the same name, the UI shows a persistent warning, `/api/reviews/:rid/video-status` reports it, and `frameback open` refuses with a `_v(N+1)` suggestion unless `--force` (recorded as `review.video_adopted`). Optional `video.fingerprint` in `review.json`; reviews without it adopt the current file silently.
+- `frameback watch` resumes where it left off: it saves a per-review cursor (`.cursors/<name>.json`, written atomically) and replays only the events after it on restart; `--cursor <name>` keeps independent cursors.
 
 ### Changed
 - Links point to the renamed gbo-video-method repository.
