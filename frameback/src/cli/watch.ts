@@ -18,6 +18,13 @@ import { formatEventText } from "./format.js";
 
 const POLL_MS = 250;
 
+/** One-line stderr notice for a person running `watch` in a terminal; null when stdout is piped or `--json` is used. */
+export function humanViewNotice(stdoutIsTTY: boolean, json: boolean): string | null {
+  return stdoutIsTTY && !json
+    ? "this is a human view; an agent must listen with `frameback watch <video> --json` (one event per comment, in real time)"
+    : null;
+}
+
 const CURSOR_DIR = ".cursors";
 export const DEFAULT_CURSOR = "watch";
 

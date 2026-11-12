@@ -7,6 +7,10 @@ versioning follows [SemVer](https://semver.org/).
 
 ## [0.1.2] - YYYY-MM-DD
 
+### Changed
+- The `frameback-review` skill now requires handling **each comment as it arrives** (Monitor on `watch --json`: classify, queue or delegate to subagents, set `agent_status`) while the reviewer keeps going; **Process review** only closes the round (integrate, render the next version). `--exit-on review.submitted` is documented as a degraded, non-real-time fallback (SKILL, reference, PROTOCOL, README).
+- `frameback watch` on a terminal without `--json` prints a one-line stderr notice that it is a human view and agents must use `--json`. No change when stdout is piped.
+
 ### Added
 - `frameback open <video> --share [tailscale]`: review from another computer over Tailscale or a private wifi/LAN. Whoever has the printed link can **review** (watch, comment, edit/delete comments and threads, submit, reopen) and nothing else.
   - The link carries a random per-process key; the first visit stores it in an HttpOnly, SameSite=Lax cookie (`Max-Age` = remaining TTL) and redirects to the URL without it. It expires after 12 h (`--share-ttl <hours>`, max 24): then other computers get 401 and a notice is printed on stderr, while localhost keeps working. The cookie is `Lax` (not `Strict`) so the link also works when opened with one click from messaging apps or email (a cross-site navigation); state-changing requests stay protected by the Origin check.

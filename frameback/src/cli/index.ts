@@ -36,7 +36,7 @@ import { InvalidVideoError, VideoChangedError, packageRoot, prepareReview } from
 import { formatCommentRow } from "./format.js";
 import { openCommand } from "./open.js";
 import { MAX_SHARE_TTL_HOURS, parseShareTtl } from "../server/share.js";
-import { parseActors, parseCursorName, parseEventType, watchReview } from "./watch.js";
+import { humanViewNotice, parseActors, parseCursorName, parseEventType, watchReview } from "./watch.js";
 
 // ----------------------------------------------------------------- helpers ----
 
@@ -155,6 +155,8 @@ program
       if (o.json && o.text) throw new Error("use either --json or --text");
       const exitOn = o.exitOn ? parseEventType(o.exitOn) : undefined;
       const format = o.json ? "json" : o.text ? "text" : process.stdout.isTTY ? "text" : "json";
+      const notice = humanViewNotice(Boolean(process.stdout.isTTY), Boolean(o.json));
+      if (notice) console.error(`frameback: ${notice}`);
       const controller = new AbortController();
       for (const sig of ["SIGINT", "SIGTERM"] as const) process.once(sig, () => controller.abort());
       process.stdout.on("error", (e: NodeJS.ErrnoException) => {

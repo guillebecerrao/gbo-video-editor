@@ -122,7 +122,8 @@ other), an optional action (remove, change, add, move, keep, question) and a pri
 
 1. The agent delivers a video and runs `frameback open <video>`.
 2. It listens: **Claude Code** runs `frameback watch <video> --json --actor human,system` with the Monitor tool (one notification per
-   comment), or a background task with `--exit-on review.submitted`.
+   comment, handled as it arrives). A background task with `--exit-on review.submitted` is only a degraded fallback
+   (no real time: it fires when the round closes).
 3. For each comment it looks at the snapshot, then acknowledges, prepares a change against a *staging* edit, or asks a
    question in the thread. You see statuses and replies update live.
 4. You press **Process review**. The agent finishes what is left, renders **once** to `…_v2.mp4`, marks comments
