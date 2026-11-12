@@ -1,5 +1,6 @@
 /** `frameback watch` — tail a review's event log (PROTOCOL §7). */
 import { promises as fs } from "node:fs";
+import path from "node:path";
 import {
   ACTORS,
   EVENT_TYPES,
@@ -17,12 +18,44 @@ import { formatEventText } from "./format.js";
 
 const POLL_MS = 250;
 
+const CURSOR_DIR = ".cursors";
+export const DEFAULT_CURSOR = "watch";
+
+export function parseCursorName(value: string): string {
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/.test(value)) {
+    throw new Error(`invalid cursor name '${value}' (use letters, digits, '.', '_' or '-'; max 64 characters)`);
+  }
+  return value;
+}
+
+const cursorFile = (dir: string, name: string) => path.join(dir, CURSOR_DIR, `${name}.json`);
+
+async function loadCursor(dir: string, name: string): Promise<number | null> {
+  try {
+    const seq = JSON.parse(await fs.readFile(cursorFile(dir, name), "utf8"))?.seq;
+    return Number.isInteger(seq) && seq >= 0 ? seq : null;
+  } catch {
+    return null; // missing or unreadable: behave as a first run
+  }
+}
+
+/** Atomic (tmp + rename) so a crash never leaves a half-written cursor. */
+async function saveCursor(dir: string, name: string, seq: number): Promise<void> {
+  const file = cursorFile(dir, name);
+  const tmp = `${file}.${process.pid}.tmp`;
+  await fs.mkdir(path.dirname(file), { recursive: true });
+  await fs.writeFile(tmp, JSON.stringify({ seq }) + "\n");
+  await fs.rename(tmp, file);
+}
+
 export interface WatchOptions {
   target: string;
   /** replay events with seq > since (default: replay everything) */
   since?: number;
   /** start at the current end of the log instead of replaying */
   tail?: boolean;
+  /** consumer name of the persisted cursor (default "watch"); --since and --tail take priority over the saved value */
+  cursor?: string;
   format: "json" | "text";
   /**
    * Stop right after printing the first NEW event of this type. Replayed history does not count (after a reopen an
@@ -77,11 +110,29 @@ export async function watchReview(opts: WatchOptions): Promise<Event | null> {
 
   // --tail on a review that did not exist yet: every event is new, so start at the beginning
   const endAtStart = await lastSeq(dir);
+  const cursorName = opts.cursor ?? DEFAULT_CURSOR;
   let cursor = opts.tail && existedAtStart ? endAtStart : opts.since ?? 0;
-  opts.log(`watching ${dir} (events after #${cursor})`);
+  let resumed = false;
+  if (opts.since === undefined && !opts.tail) {
+    const saved = await loadCursor(dir, cursorName);
+    if (saved !== null && saved > endAtStart) {
+      opts.log(`saved cursor #${saved} is ahead of the log (#${endAtStart}); review recreated, starting from the beginning`);
+    } else if (saved !== null) {
+      cursor = saved;
+      resumed = true;
+    }
+  }
+  opts.log(`watching ${dir} (events after #${cursor}${resumed ? `, resumed from cursor '${cursorName}'` : ""})`);
+  let saved = -1;
+  const persist = async () => {
+    if (cursor === saved) return;
+    saved = cursor;
+    await saveCursor(dir, cursorName, cursor).catch((e) => opts.log(`could not save cursor: ${(e as Error).message}`));
+  };
+  await persist();
 
   const actors = opts.actors?.length ? new Set<Actor>(opts.actors) : null;
-  const exitAfter = opts.since !== undefined ? opts.since : existedAtStart ? endAtStart : 0;
+  const exitAfter = opts.since !== undefined ? opts.since : resumed ? cursor : existedAtStart ? endAtStart : 0;
   let currentSubmitted = -1; // seq of the replayed review.submitted that is still current (the review is `submitted`)
   if (opts.exitOn === "review.submitted" && (await readReview(dir)).state === "submitted") {
     const submitted = (await readEvents(dir, 0)).filter((e) => e.type === "review.submitted");
@@ -107,10 +158,14 @@ export async function watchReview(opts: WatchOptions): Promise<Event | null> {
       signature = next;
       for (const ev of await readEvents(dir, cursor)) {
         cursor = ev.seq;
-        if (actors && !actors.has(ev.actor)) continue;
+        if (actors && !actors.has(ev.actor)) {
+          await persist();
+          continue;
+        }
         // `reviewDir` is not stored in the log; it lets an agent resolve relative paths such as `snapshot`
         const line = opts.format === "json" ? JSON.stringify({ ...ev, reviewDir: dir }) : formatEventText(ev, dir);
         await opts.write(line);
+        await persist();
         if (ev.type === opts.exitOn && (ev.seq > exitAfter || ev.seq === currentSubmitted)) return ev;
       }
     }

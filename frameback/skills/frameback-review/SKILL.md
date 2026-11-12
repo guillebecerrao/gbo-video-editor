@@ -41,7 +41,10 @@ After you deliver a video (preview or final):
      notification when the review is submitted; read comments with `frameback list`).
    - Fallback B (MCP configured): loop on `frameback_wait_for_events` with the last `lastSeq`.
    Start the watch on the video the reviewer is currently looking at, and only one watch per video.
-   If you resume a session, run `frameback list <video> --json` first and watch with `--since <lastSeq>`.
+   `watch` remembers the last event it delivered (`<reviewDir>/.cursors/watch.json`), so if you restart it (e.g. to change
+   `--actor`) it continues without losing or repeating events; `--since <n>` / `--tail` override that, `--since 0`
+   starts over, and `--cursor <name>` keeps a separate position per consumer. If you resume a session, run
+   `frameback list <video> --json` first to catch up.
 
 ## 2. Triage loop (one pass per event)
 

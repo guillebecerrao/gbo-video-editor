@@ -35,7 +35,7 @@ import {
 import { InvalidVideoError, VideoChangedError, packageRoot, prepareReview } from "../server/index.js";
 import { formatCommentRow } from "./format.js";
 import { openCommand } from "./open.js";
-import { parseActors, parseEventType, watchReview } from "./watch.js";
+import { parseActors, parseCursorName, parseEventType, watchReview } from "./watch.js";
 
 // ----------------------------------------------------------------- helpers ----
 
@@ -122,14 +122,15 @@ program
   .command("watch")
   .argument("<target>", "video file or review dir (may not exist yet)")
   .description("stream review events: NDJSON for agents (--json) or one readable line each (--text)")
-  .option("--since <seq>", "replay events after this sequence number (default: replay everything; --exit-on then only counts new events)", intArg("since"))
-  .option("--tail", "start at the end of the log instead of replaying")
+  .option("--since <seq>", "replay events after this sequence number (overrides the saved cursor; --exit-on then only counts new events)", intArg("since"))
+  .option("--tail", "start at the end of the log instead of replaying (overrides the saved cursor)")
+  .option("--cursor <name>", "name of the saved cursor (default: watch); a restart without --since/--tail resumes after the last delivered event; use --since 0 to start over", parseCursorName)
   .option("--json", "one Event JSON per line (default when stdout is not a terminal)")
   .option("--text", "one human-readable line per event (default on a terminal)")
   .option("--exit-on <type>", "exit 0 right after printing the first NEW event of this type, e.g. review.submitted (replayed history does not count)")
   .option("--actor <list>", "only events written by these actors (comma separated: human,agent,system); use human,system to skip your own echoes")
   .action(
-    action(async (target: string, o: { since?: number; tail?: boolean; json?: boolean; text?: boolean; exitOn?: string; actor?: string }) => {
+    action(async (target: string, o: { since?: number; tail?: boolean; cursor?: string; json?: boolean; text?: boolean; exitOn?: string; actor?: string }) => {
       if (o.json && o.text) throw new Error("use either --json or --text");
       const exitOn = o.exitOn ? parseEventType(o.exitOn) : undefined;
       const format = o.json ? "json" : o.text ? "text" : process.stdout.isTTY ? "text" : "json";
@@ -142,6 +143,7 @@ program
         target,
         since: o.since,
         tail: o.tail,
+        cursor: o.cursor,
         format,
         exitOn,
         actors: o.actor ? parseActors(o.actor) : undefined,

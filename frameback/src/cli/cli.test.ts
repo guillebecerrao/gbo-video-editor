@@ -107,6 +107,75 @@ describe("frameback watch", () => {
     expect(tail.lines().map((l) => JSON.parse(l).type)).toEqual(["thread.message"]);
   });
 
+  it("resumes from the saved cursor: events written while stopped arrive exactly once", async () => {
+    const { dir } = await S.openReview(video);
+    await S.createComment(dir, nc("a"));
+    const first = start("watch", video, "--json");
+    await first.waitFor(() => first.lines().length >= 2);
+    first.child.kill("SIGINT");
+    await first.exited;
+    expect(first.lines().map((l) => JSON.parse(l).seq)).toEqual([1, 2]);
+
+    await S.createComment(dir, nc("b", 2)); // written while no watcher runs
+    await S.createComment(dir, nc("c", 3));
+    const second = start("watch", video, "--json");
+    await second.waitFor(() => second.lines().length >= 2);
+    await sleep(600); // no duplicates trickle in
+    expect(second.lines().map((l) => JSON.parse(l).seq)).toEqual([3, 4]);
+    expect(second.err()).toMatch(/resumed from cursor 'watch'/);
+    second.child.kill("SIGINT");
+    await second.exited;
+    expect(JSON.parse(await fs.readFile(path.join(dir, ".cursors", "watch.json"), "utf8")).seq).toBe(4);
+
+    const third = start("watch", video, "--json", "--exit-on", "comment.created");
+    await third.waitFor(() => /watching/.test(third.err()));
+    await S.createComment(dir, nc("d", 4));
+    expect(await third.exited).toBe(0);
+    expect(third.lines().map((l) => JSON.parse(l).seq)).toEqual([5]);
+  });
+
+  it("--since and --tail ignore the saved cursor; named cursors are independent", async () => {
+    const { dir } = await S.openReview(video);
+    await S.createComment(dir, nc("a"));
+    await S.createComment(dir, nc("b", 2));
+    const seed = start("watch", video, "--json");
+    await seed.waitFor(() => seed.lines().length >= 3);
+    seed.child.kill("SIGINT");
+    await seed.exited;
+    expect(JSON.parse(await fs.readFile(path.join(dir, ".cursors", "watch.json"), "utf8")).seq).toBe(3);
+
+    const since = start("watch", video, "--json", "--since", "0");
+    await since.waitFor(() => since.lines().length >= 3);
+    expect(since.lines().map((l) => JSON.parse(l).seq)).toEqual([1, 2, 3]);
+    since.child.kill("SIGINT");
+    await since.exited;
+
+    const other = start("watch", video, "--json", "--cursor", "other");
+    await other.waitFor(() => other.lines().length >= 3);
+    expect(other.lines().map((l) => JSON.parse(l).seq)).toEqual([1, 2, 3]); // own cursor: nothing saved yet
+    other.child.kill("SIGINT");
+    await other.exited;
+    await fs.access(path.join(dir, ".cursors", "other.json"));
+
+    const tail = start("watch", video, "--json", "--tail", "--exit-on", "thread.message");
+    await tail.waitFor(() => /watching/.test(tail.err()));
+    await S.addThreadMessage(dir, "c-0001", "agent", "hi");
+    expect(await tail.exited).toBe(0);
+    expect(tail.lines().map((l) => JSON.parse(l).seq)).toEqual([4]);
+  }, 30_000);
+
+  it("starts from the beginning when the log was recreated (cursor ahead of the log)", async () => {
+    const { dir } = await S.openReview(video);
+    await fs.mkdir(path.join(dir, ".cursors"), { recursive: true });
+    await fs.writeFile(path.join(dir, ".cursors", "watch.json"), JSON.stringify({ seq: 99 }));
+    const w = start("watch", video, "--json");
+    await w.waitFor(() => w.lines().length >= 1);
+    expect(w.lines().map((l) => JSON.parse(l).seq)).toEqual([1]);
+    expect(w.err()).toMatch(/review recreated, starting from the beginning/);
+    w.child.kill("SIGINT");
+    await w.exited;
+  });
+
   it("prints readable lines with --text and stops cleanly on SIGINT", async () => {
     const { dir } = await S.openReview(video);
     await S.createComment(

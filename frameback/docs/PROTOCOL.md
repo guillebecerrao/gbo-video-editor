@@ -118,7 +118,7 @@ Every line: `{ "seq": 12, "at": "ISO", "type": "<type>", "review": "<stem>", "co
 ### CLI (works everywhere)
 
 ```
-frameback watch <video|reviewDir> [--since <seq>] [--tail] [--exit-on review.submitted] [--actor human,agent,system] [--json|--text]
+frameback watch <video|reviewDir> [--since <seq>] [--tail] [--cursor <name>] [--exit-on review.submitted] [--actor human,agent,system] [--json|--text]
 frameback list  <video|reviewDir> [--agent-status pending,needs_info] [--json]
 frameback show  <reviewDir> <commentId> [--json]
 frameback update <reviewDir> <commentId> --status <agentStatus> [--plan …] [--reply …] [--applied-in <stem>] [--seen-revision <n>] [--json]
@@ -205,6 +205,12 @@ version (`_v(N+1)`) instead. A review without a fingerprint adopts the current f
 **watch semantics**
 - `frameback watch <target>` waits for the review dir to exist, then **replays** all events with seq > `--since`
   (default 0) and keeps tailing (polling ~250 ms; only complete lines). `--tail` starts at the current end instead.
+- **Cursor**: `watch` saves the last delivered `seq` to `<reviewDir>/.cursors/<name>.json` (default name `watch`,
+  change it with `--cursor <name>`; written atomically, separate from `events.ndjson`). Restarting with neither
+  `--since` nor `--tail` resumes right after it, so events written while the watcher was stopped are delivered once.
+  `--since <n>` / `--tail` take priority over the saved cursor (and then update it); `--since 0` starts over. If the
+  saved cursor is ahead of the log (review recreated) the watch starts from the beginning and says so on stderr.
+  Use a distinct `--cursor` per consumer watching the same review.
 - `--json`: one Event per line. `--text`: one human-readable line per event, e.g.
   `#12 comment.created c-0007 [must/framing] 00:12.48–00:15.20 region(rect) "Center the speaker…" snapshot=…/c-0007.jpg`.
 - `--exit-on <type>` exits 0 right after printing the first event of that type (e.g. `review.submitted`).
